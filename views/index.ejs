@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pokemon Red Tournament</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <div class="login-container">
+    <% if (username) { %>
+        <p>Logged in as <span class="username"><%= username %></span></p>
+        <img src="<%= profileImage %>" alt="Profile Image" class="profile-image">
+        <form action="/logout" method="POST">
+            <button class="logout-button" type="submit">Logout</button>
+        </form>
+    <% } else { %>
+      <img src="/RedTournamentLogo.png" alt="Login Image" class="login-image">
+      <a class="login-button" href="/auth/discord">Login with Discord</a>
+    <% } %>
+  </div>
+</body>
+</html>
