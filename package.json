@@ -18,5 +18,8 @@
     "express-session": "^1.18.0",
     "helmet": "^7.1.0",
     "passport": "^0.7.0"
+  },
+  "devDependencies": {
+    "@flydotio/dockerfile": "^0.5.8"
   }
 }
