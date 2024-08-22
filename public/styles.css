@@ -1,66 +1,180 @@
-body {
-    font-family: Arial, sans-serif;
-    text-align: center;
+/* Reset and Base Styles */
+* {
     margin: 0;
     padding: 0;
+    box-sizing: border-box;
+}
 
+body {
+    font-family: Arial, sans-serif;
     background-color: black;
     color: white;
 }
 
-.profile-image {
-    width: 100px;
-    height: 100px;
+/* Navbar Styles */
+.navbar {
+    background-color: rgb(255, 0, 0);
+    color: #fff;
+    font-weight: bold;
+    padding: 10px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.navbar a {
+    color: #fff;
+    text-decoration: none;
+    font-weight: bold;
+}
+
+.navbar-left {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.navbar-right {
+    display: flex;
+    align-items: center;
+}
+
+/* Typography */
+.welcome-message {
+    font-size: 2rem;
+    text-align: center;
+    margin-bottom: 1rem;
+}
+
+p {
+    text-align: center;
+    line-height: 1.6;
+    margin-bottom: 1.5rem;
+    max-width: 800px;
+}
+
+/* Profile and User Info */
+.user-info,
+.user-info > div {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+}
+
+.user-info {
+    gap: 1rem;
+}
+
+.avatar, .profile-avatar {
     border-radius: 50%;
 }
 
-.username {
-    font-weight: 600;
+.avatar {
+    width: 40px;
+    height: 40px;
+    margin-right: 10px;
 }
 
-.login-container {
+.profile-avatar {
+    width: 100px;
+    height: 100px;
+    margin-bottom: 10px;
+}
+
+/* Dashboard and Quick Actions */
+.dashboard {
+    max-width: 1200px;
+    margin: 20px auto;
+    padding: 20px;
+    border-radius: 8px;
+}
+
+.dashboard h1 {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.profile-section {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.quick-actions {
     display: flex;
-    flex-direction: column;
-    justify-content: space-around;
+    justify-content: center;
     align-items: center;
-    gap: 2rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+/* Button Styles */
+.button,
+.login-button,
+.logout-button {
+    padding: 10px 20px;
+    font-weight: bold;
+    color: #fff;
+    text-decoration: none;
+    border-radius: 4px;
+    cursor: pointer;
+    text-align: center;
+    border: 1px solid transparent;
+}
+
+.button {
+    background-color: #ff0000;
+    margin-top: 10px;
+    transition: background-color 0.3s ease;
 }
 
 .login-button {
-    display: inline-block;
     background-color: #7289da;
-    color: white;
-    font-size: 16px;
-    font-weight: bold;
-    padding: 10px 20px;
-    border-radius: 5px;
-    text-decoration: none;
-    text-align: center;
-    cursor: pointer;
-    border: 1px solid transparent;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
 }
 
 .logout-button {
-    display: inline-block;
-    background-color: red;
-    color: white;
-    font-size: 16px;
-    font-weight: bold;
-    padding: 10px 20px;
-    border-radius: 5px;
-    text-decoration: none;
-    text-align: center;
-    cursor: pointer;
-    border: 1px solid transparent;
+    background-color: black;
+}
+
+.discord-logo {
+    max-width: 2rem;
+    height: auto;
+}
+
+/* Login Container */
+.login-container {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
 }
 
 .login-image {
     max-width: 50%;
-    height: auto;
 }
 
-.profile-image {
-    width: 100px;
-    height: 100px;
-    border-radius: 50%;
+/* List Styles */
+ul {
+    list-style-type: none;
+}
+
+li {
+    padding: 10px;
+    background-color: #f4f4f4;
+    margin-bottom: 10px;
+    border-radius: 4px;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .navbar {
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+    }
 }

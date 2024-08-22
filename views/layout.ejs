@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %></title>
+    <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="navbar-left">
+            <a href="/">Home</a>
+
+            <% if (username) { %>
+                <a href="/submit-race">Submit Race</a>
+            <% } %>
+
+            <a href="/races">Upcoming Races</a>
+            <a href="/past-races">Past Races</a>
+        </div>
+        <div class="navbar-right">
+            <% if (username) { %>
+                <div class="user-info">
+                    <div>
+                        <img src="<%= profileImage %>" alt="<%= username %>" class="avatar">
+                        <span><%= username %></span>
+                    </div>
+
+                    <form action="/logout" method="POST" class="logout-form">
+                        <button type="submit" class="logout-button">Logout</button>
+                    </form>
+                </div>
+            <% } else { %>
+                <a href="/auth/discord" class="login-button">
+                    <img src="/discord-logo-white.png" alt="Discord logo" class="discord-logo">
+                    Login
+                </a>
+            <% } %>
+        </div>
+    </nav>
+
+    <div class="container">
+        <%- body %>
+    </div>
+</body>
+</html>

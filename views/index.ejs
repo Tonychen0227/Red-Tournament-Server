@@ -1,23 +1,31 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Pokemon Red Tournament</title>
-  <link rel="stylesheet" href="/styles.css">
-</head>
-<body>
-  <div class="login-container">
-    <% if (username) { %>
-        <p>Logged in as <span class="username"><%= username %></span></p>
-        <img src="<%= profileImage %>" alt="Profile Image" class="profile-image">
-        <form action="/logout" method="POST">
-            <button class="logout-button" type="submit">Logout</button>
-        </form>
-    <% } else { %>
-      <img src="/RedTournamentLogo.png" alt="Login Image" class="login-image">
-      <a class="login-button" href="/auth/discord">Login with Discord</a>
-    <% } %>
+<% if (username) { %>
+  <div class="dashboard">
+    <p class="welcome-message">Welcome, <span class="username"><%= username %></span>!</p>
+
+    <div class="profile-section">
+        <img src="<%= profileImage %>" alt="<%= username %>" class="profile-avatar">
+    </div>
+
+    <p>You can submit races you've organized with your fellow group members</p>
+    <p>You can sign up to commentate any race</p>
+    <p>
+      During the Swiss rounds, this will be on a "first come, first served" basis.
+      The last 4 matches, the racers will get to vote on their preferred commentators from the people who have submitted.
+    </p>
+
+
+    <div class="quick-actions">
+        <a href="/submit-race" class="button">Submit Your Next Race</a>
+        <a href="/races" class="button">View Submitted Races</a>
+        <a href="/history" class="button">View Past Race Results</a>
+    </div>
   </div>
-</body>
-</html>
+<% } else { %>
+  <div class="login-container">
+    <img src="/RedTournamentLogo.png" alt="Login Image" class="login-image">
+    <!-- <a class="login-button" href="/auth/discord">
+      Login with Discord
+      <img src="/discord-logo-white.png" alt="Discord logo" class="discord-logo">
+    </a> -->
+  </div>
+<% } %>

@@ -12,6 +12,7 @@ const { Strategy } = require('@oauth-everything/passport-discord');
 const helmet = require('helmet');
 
 const app = express();
+const expressLayouts = require('express-ejs-layouts');
 
 const DISCORD_CLIENT_ID = process.env.DISCORD_CLIENT_ID;
 const DISCORD_CLIENT_SECRET = process.env.DISCORD_CLIENT_SECRET;
@@ -20,9 +21,14 @@ const CALLBACK_URL = process.env.CALLBACK_URL;
 // Serve static files from 'public' directory
 app.use(express.static(path.join(__dirname, 'public')));
 
+// Trust the Fly.io proxy
+app.set('trust proxy', 1);
+
 // Set view engine to EJS
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
+app.use(expressLayouts);
+app.set('layout', 'layout');
 
 // Set security-related HTTP headers
 app.use(helmet());
@@ -48,6 +54,7 @@ const limiter = rateLimit({
     max: 100, // limit each IP to 100 requests per windowMs
     message: "Too many requests from this IP, please try again later."
 });
+
 app.use(limiter);
 
 // Set up session middleware
@@ -85,15 +92,37 @@ passport.use(new Strategy({
   }
 ));
 
+// Middleware to set username and profileImage in res.locals for all routes
+app.use((req, res, next) => {
+  res.locals.username = req.isAuthenticated() ? req.user.username : null;
+  res.locals.profileImage = req.isAuthenticated() && req.user.photos.length > 0 ? req.user.photos[0].value : null;
+  next();
+});
+
 // Routes  
 app.get('/', (req, res) => {
+  const title = 'Pokemon Red Tournament';
+
   if (req.isAuthenticated()) {
     const username = req.user.username;
-    const profileImage = req.user.photos && req.user.photos.length > 0 ? req.user.photos[0].value : '/default-avatar.png';
-    res.render('index', { username, profileImage });
+    const profileImage = req.user.photos && req.user.photos.length > 0 ? req.user.photos[0].value : null;
+    
+    res.render('index', { title, username, profileImage});
   } else {
-    res.render('index', { username: null, profileImage: '/default-avatar.png' });
+    res.render('index', { title, username: null, profileImage: null });
   }
+});
+
+app.get('/races', (req, res) => {
+  res.render('races', { title: 'Upcoming Races' });
+});
+
+app.get('/submit-race', (req, res) => {
+  res.render('submit-race', { title: 'Submit a New Race' });
+});
+
+app.get('/past-races', (req, res) => {
+  res.render('past-races', { title: 'Past Races' });
 });
 
 // Route to start the Discord authentication process
