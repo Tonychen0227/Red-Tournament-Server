@@ -1,0 +1,23 @@
+<h1>Add a New User</h1>
+    
+<form action="/add-user" method="post">
+    <div>
+        <label for="discordUsername">Discord Username:</label>
+        <input type="text" id="discordUsername" name="discordUsername" required>
+    </div>
+    
+    <div>
+        <label for="role">Role:</label>
+        <select id="role" name="role" required>
+            <option value="runner">Runner</option>
+            <option value="commentator">Commentator</option>
+        </select>
+    </div>
+
+    <div>
+        <label for="isAdmin">Admin:</label>
+        <input type="checkbox" id="isAdmin" name="isAdmin">
+    </div>
+
+    <button type="submit">Add User</button>
+</form>

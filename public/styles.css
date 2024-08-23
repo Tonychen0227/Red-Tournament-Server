@@ -7,8 +7,8 @@
 
 body {
     font-family: Arial, sans-serif;
-    background-color: black;
-    color: white;
+    background-color: rgba(255, 0, 0, 0.2);
+    color: rgb(0, 0, 0);
 }
 
 /* Navbar Styles */
@@ -34,6 +34,8 @@ body {
     display: flex;
     align-items: center;
     gap: 1rem;
+    height: 4rem;
+    text-align: center;
 }
 
 .navbar-right {
@@ -67,6 +69,10 @@ p {
     gap: 1rem;
 }
 
+.username {
+    font-weight: bold;
+}
+
 .avatar, .profile-avatar {
     border-radius: 50%;
 }
@@ -85,10 +91,12 @@ p {
 
 /* Dashboard and Quick Actions */
 .dashboard {
-    max-width: 1200px;
-    margin: 20px auto;
-    padding: 20px;
-    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+
+    margin-top: 1rem;
 }
 
 .dashboard h1 {
@@ -124,7 +132,7 @@ p {
 }
 
 .button {
-    background-color: #ff0000;
+    background-color: red;
     margin-top: 10px;
     transition: background-color 0.3s ease;
 }
@@ -152,10 +160,6 @@ p {
     flex-direction: column;
     justify-content: center;
     align-items: center;
-}
-
-.login-image {
-    max-width: 50%;
 }
 
 /* List Styles */

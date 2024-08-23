@@ -12,8 +12,10 @@
             <a href="/">Home</a>
 
             <% if (username) { %>
-                <a href="/submit-race">Submit Race</a>
-            <% } %>
+                <% if (role === 'runner') { %>
+                  <a href="/submit-race">Submit Race</a>
+                <% } %>
+              <% } %>
 
             <a href="/races">Upcoming Races</a>
             <a href="/past-races">Past Races</a>
@@ -23,7 +25,7 @@
                 <div class="user-info">
                     <div>
                         <img src="<%= profileImage %>" alt="<%= username %>" class="avatar">
-                        <span><%= username %></span>
+                        <span><%= displayName %></span>
                     </div>
 
                     <form action="/logout" method="POST" class="logout-form">
@@ -31,7 +33,7 @@
                     </form>
                 </div>
             <% } else { %>
-                <a href="/auth/discord" class="login-button">
+                <a href="/login" class="login-button">
                     <img src="/discord-logo-white.png" alt="Discord logo" class="discord-logo">
                     Login
                 </a>

@@ -1,12 +1,16 @@
 <% if (username) { %>
   <div class="dashboard">
-    <p class="welcome-message">Welcome, <span class="username"><%= username %></span>!</p>
+    <p class="welcome-message">Welcome, <span class="username"><%= displayName %></span>!</p>
 
     <div class="profile-section">
         <img src="<%= profileImage %>" alt="<%= username %>" class="profile-avatar">
     </div>
 
-    <p>You can submit races you've organized with your fellow group members</p>
+
+    <% if (role === 'runner') { %>
+      <p>You can submit races you've organized with your fellow group members</p>
+    <% } %>
+
     <p>You can sign up to commentate any race</p>
     <p>
       During the Swiss rounds, this will be on a "first come, first served" basis.
@@ -15,7 +19,11 @@
 
 
     <div class="quick-actions">
-        <a href="/submit-race" class="button">Submit Your Next Race</a>
+
+        <% if (role === 'runner') { %>
+          <a href="/submit-race" class="button">Submit Your Next Race</a>
+        <% } %>
+
         <a href="/races" class="button">View Submitted Races</a>
         <a href="/history" class="button">View Past Race Results</a>
     </div>
