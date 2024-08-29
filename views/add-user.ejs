@@ -1,9 +1,12 @@
-<h1>Add a New User</h1>
-    
 <form action="/add-user" method="post">
     <div>
         <label for="discordUsername">Discord Username:</label>
         <input type="text" id="discordUsername" name="discordUsername" required>
+    </div>
+
+    <div>
+        <label for="discordUsername">Display Name:</label>
+        <input type="text" id="displayName" name="displayName" required>
     </div>
     
     <div>
@@ -13,11 +16,5 @@
             <option value="commentator">Commentator</option>
         </select>
     </div>
-
-    <div>
-        <label for="isAdmin">Admin:</label>
-        <input type="checkbox" id="isAdmin" name="isAdmin">
-    </div>
-
-    <button type="submit">Add User</button>
+    <button type="submit" class="button">Add User</button>
 </form>

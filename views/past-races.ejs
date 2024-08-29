@@ -1,8 +1,33 @@
-<h1>Past Races</h1>
-<p>Here is the archive of past races and their results.</p>
+<% if (races.length > 0) { %>
+    <div>
+        <% races.forEach(race => { %>
+            <div class="race-card">
+                <div class="race-title">
+                    <%= new Date(race.datetime * 1000).toLocaleString() %>
+                </div>
+                
+                <% race.results.forEach(result => { %>
+                    <div class="racer <%= race.winner && race.winner.equals(result.racer._id) ? 'winner' : '' %>">
+                        <% if (result.racer && race.racer1 && result.racer._id.equals(race.racer1._id)) { %>
+                            <%= race.racer1.displayName || race.racer1.discordUsername %>
+                        <% } else if (result.racer && race.racer2 && result.racer._id.equals(race.racer2._id)) { %>
+                            <%= race.racer2.displayName || race.racer2.discordUsername %>
+                        <% } else if (result.racer && race.racer3 && result.racer._id.equals(race.racer3._id)) { %>
+                            <%= race.racer3.displayName || race.racer3.discordUsername %>
+                        <% } %>
+                        <div class="result">
+                            <% if (result.status === 'Finished') { %>
+                                <div><%= result.finishTime.hours %>h <%= result.finishTime.minutes %>m <%= result.finishTime.seconds %>s</div>
+                            <% } else { %>
+                                <%= result.status %>
+                            <% } %>
+                        </div>
+                    </div>
+                <% }) %>
 
-<ul>
-    <li>Race 1 - Winner: Player A</li>
-    <li>Race 2 - Winner: Player B</li>
-    <li>Race 3 - Winner: Player C</li>
-</ul>
+            </div>
+        <% }) %>
+    </div>
+<% } else { %>
+    <p>No past races found.</p>
+<% } %>

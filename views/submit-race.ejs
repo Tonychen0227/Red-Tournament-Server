@@ -1,17 +1,45 @@
-<h1>Submit a Race</h1>
-<p>Fill in the details below to submit your next race.</p>
+<div class="container">
+    <form action="/submit-race" method="post">
+        <div class="race-datetime">
+            <div>
+                <label for="date">Race Date</label>
+                <input type="date" id="date" name="date" required>
+            </div>
 
-<form action="/submit-race" method="post">
-    <label for="date">Race Date:</label>
-    <input type="date" id="date" name="date" required>
+            <div>
+                <label for="time">Race Time (UTC)</label>
+                <input type="time" id="time" name="time" required>
+            </div>
+        </div>
 
-    <!-- Can we do this with the user's local time? -->
-     <!-- Otherwise, just offer a UTC calc? -->
-    <label for="time">Race Time (UTC):</label>
-    <input type="time" id="date" name="date" required>
+        <div>
+            <label for="racer1">Racer 1</label>
+            <select id="racer1" name="racer1" required>
+                <option value="" disabled>Select Racer 1</option>
+                <option value="" selected><%= displayName %></option>
+            </select>
+        </div>
+            
+        <div>
+            <label for="racer2">Racer 2</label>
+            <select id="racer2" name="racer2" required>
+                <option value="" disabled selected>Select Racer 2</option>
+                <% runners.forEach(runner => { %>
+                    <option value="<%= runner._id %>"><%= runner.displayName %></option>
+                <% }) %>
+            </select>
+        </div>
 
-    <label for="date">Race Date:</label>
-    <input type="date" id="date" name="date" required>
-    
-    <button type="submit" class="button">Submit Race</button>
-</form>
+        <div>
+            <label for="racer3">Racer 3</label>
+            <select id="racer3" name="racer3">
+                <option value="" selected>Select Racer 3</option>
+                <% runners.forEach(runner => { %>
+                    <option value="<%= runner._id %>"><%= runner.displayName %></option>
+                <% }) %>
+            </select>
+        </div>
+            
+        <button type="submit" class="button">Submit Race</button>
+    </form>
+</div>

@@ -1,11 +1,10 @@
-<% if (username) { %>
+<% if (username && !isAdmin) { %>
   <div class="dashboard">
     <p class="welcome-message">Welcome, <span class="username"><%= displayName %></span>!</p>
 
     <div class="profile-section">
         <img src="<%= profileImage %>" alt="<%= username %>" class="profile-avatar">
     </div>
-
 
     <% if (role === 'runner') { %>
       <p>You can submit races you've organized with your fellow group members</p>
@@ -14,9 +13,9 @@
     <p>You can sign up to commentate any race</p>
     <p>
       During the Swiss rounds, this will be on a "first come, first served" basis.
-      The last 4 matches, the racers will get to vote on their preferred commentators from the people who have submitted.
+      <br>
+      For the final 4 matches, the racers will get to vote on their preferred commentators from the people who have submitted.
     </p>
-
 
     <div class="quick-actions">
 
@@ -28,8 +27,20 @@
         <a href="/history" class="button">View Past Race Results</a>
     </div>
   </div>
-<% } else { %>
-  <div class="login-container">
+  <% } else if (isAdmin) { %>
+    <div class="dashboard">
+      <p class="welcome-message">Welcome, <span class="username"><%= displayName %></span>!</p>
+
+      <div class="profile-section">
+          <img src="<%= profileImage %>" alt="<%= username %>" class="profile-avatar">
+      </div>
+  
+      <p class="admin">You are an admin and can perform the following actions:</p>
+      
+      <a href="/add-user" class="button">Add User</a>
+    </div>
+  <% } else { %>
+    <div class="login-container">
     <img src="/RedTournamentLogo.png" alt="Login Image" class="login-image">
     <!-- <a class="login-button" href="/auth/discord">
       Login with Discord

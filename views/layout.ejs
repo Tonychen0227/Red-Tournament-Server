@@ -9,16 +9,18 @@
 <body>
     <nav class="navbar">
         <div class="navbar-left">
-            <a href="/">Home</a>
+            <a href="/" class="<%= currentPath === '/' ? 'active' : '' %>">Home</a>
+    
+            <a href="/runners" class="<%= currentPath === '/runners' ? 'active' : '' %>">Runners</a>
 
             <% if (username) { %>
                 <% if (role === 'runner') { %>
-                  <a href="/submit-race">Submit Race</a>
+                    <a href="/submit-race" class="<%= currentPath === '/submit-race' ? 'active' : '' %>">Submit Race</a>
                 <% } %>
-              <% } %>
-
-            <a href="/races">Upcoming Races</a>
-            <a href="/past-races">Past Races</a>
+            <% } %>
+    
+            <a href="/races" class="<%= currentPath === '/races' ? 'active' : '' %>">Upcoming Races</a>
+            <a href="/past-races" class="<%= currentPath === '/past-races' ? 'active' : '' %>">Past Races</a>
         </div>
         <div class="navbar-right">
             <% if (username) { %>
@@ -27,7 +29,7 @@
                         <img src="<%= profileImage %>" alt="<%= username %>" class="avatar">
                         <span><%= displayName %></span>
                     </div>
-
+    
                     <form action="/logout" method="POST" class="logout-form">
                         <button type="submit" class="logout-button">Logout</button>
                     </form>
@@ -39,10 +41,11 @@
                 </a>
             <% } %>
         </div>
-    </nav>
+    </nav>    
 
     <div class="container">
         <%- body %>
     </div>
+    
 </body>
 </html>

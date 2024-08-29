@@ -1,0 +1,11 @@
+<p>Currently signed up:</p>
+
+<ul class="runner-list">
+    <% if (runners.length > 0) { %>
+        <% runners.forEach(runner => { %>
+            <li><%= runner.displayName || runner.discordUsername %></li>
+        <% }) %>
+    <% } else { %>
+        <li>No runners have signed up yet.</li>
+    <% } %>
+</ul>

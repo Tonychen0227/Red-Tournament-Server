@@ -1,8 +1,44 @@
-<h1>Upcoming Races</h1>
-<p>Here you'll find a list of all upcoming races.</p>
+<% if (races.length > 0) { %>
+    <div class="races">
+        <% races.forEach(race => { %>
+            <div class="race-card">
+                <div class="race-title">
+                    <%= new Date(race.datetime * 1000).toLocaleString() %> UTC
+                </div>
+                
+                <div class="racers">
+                    <div class="racer">
+                        <%= race.racer1.displayName || race.racer1.discordUsername %>
+                    </div>
+                    
+                    <% if (race.racer2) { %>
+                        <div class="racer">
+                            <%= race.racer2.displayName || race.racer2.discordUsername %>
+                        </div>
+                    <% } %>
+                    
+                    <% if (race.racer3) { %>
+                        <div class="racer">
+                            <%= race.racer3.displayName || race.racer3.discordUsername %>
+                        </div>
+                    <% } %>
+                </div>
 
-<ul>
-    <li>Race 1 - Date: August 25, 2024</li>
-    <li>Race 2 - Date: September 3, 2024</li>
-    <li>Race 3 - Date: September 10, 2024</li>
-</ul>
+                <% if (username == race.racer1.discordUsername) { %>
+                    <a class="button" href="/admin/complete-race/<%= race._id %>">
+                        Edit
+                    </a>
+                <% } %>
+
+                <% if (isAdmin) { %>
+                    <a class="button" href="/admin/complete-race/<%= race._id %>">
+                        Complete Race
+                    </a>
+                <% } %>
+
+            </div>
+        <% }) %>
+    </div>
+<% } else { %>
+    <p>No upcoming races found.</p>
+<% } %>
