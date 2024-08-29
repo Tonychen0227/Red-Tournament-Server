@@ -3,6 +3,7 @@ const path = require('path');
 
 const express = require('express');
 const session = require('express-session');
+const flash = require('connect-flash');
 const MongoStore = require('connect-mongo');
 const mongoose = require('mongoose');
 const passport = require('passport');
@@ -89,6 +90,9 @@ app.use(session({
     sameSite: 'lax'
   }
 }));
+
+// Flash middleware for success/error messages
+app.use(flash());
 
 // Initialise passport and session support
 app.use(passport.initialize());
@@ -344,7 +348,11 @@ app.get('/past-races', async (req, res) => {
 
 // Add user
 app.get('/add-user', ensureAdmin, (req, res) => {
-  res.render('add-user', { title: 'Add User' });
+  res.render('add-user', { 
+    title: 'Add User',
+    successMessage: req.flash('success'),
+    errorMessage: req.flash('error')
+  });
 });
 
 app.post('/add-user', ensureAdmin, async (req, res) => {
@@ -360,10 +368,13 @@ app.post('/add-user', ensureAdmin, async (req, res) => {
           },
           { new: true, upsert: true }
       );
-      res.status(200).send(`User ${user.discordUsername} is now a ${user.role} and ${user.isAdmin ? 'an Admin' : 'not an Admin'}`);
+      
+      req.flash('success', `User ${user.discordUsername} is now a ${user.role}`);
+      res.redirect('/add-user');
   } catch (err) {
       console.error(err);
-      res.status(500).send('Internal Server Error');
+      req.flash('error', 'Internal Server Error');
+      res.redirect('/add-user');
   }
 });
 

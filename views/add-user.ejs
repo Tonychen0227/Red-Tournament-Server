@@ -1,3 +1,15 @@
+<% if (successMessage.length > 0) { %>
+    <div class="alert alert-success">
+        <%= successMessage %>
+    </div>
+<% } %>
+
+<% if (errorMessage.length > 0) { %>
+    <div class="alert alert-danger">
+        <%= errorMessage %>
+    </div>
+<% } %>
+
 <form action="/add-user" method="post">
     <div>
         <label for="discordUsername">Discord Username:</label>
