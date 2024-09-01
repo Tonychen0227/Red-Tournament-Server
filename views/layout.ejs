@@ -8,14 +8,19 @@
 </head>
 <body>
     <nav class="navbar">
+
         <div class="navbar-left">
-            <a href="/" class="<%= currentPath === '/' ? 'active' : '' %>">Home</a>
+            <a href="/">
+                <img src="/pokeball.png" class="discord-logo" alt="Pokeball">
+            </a>
+
+            <!-- <a href="/" class="<%= currentPath === '/' ? 'active' : '' %>">Home</a> -->
     
             <a href="/runners" class="<%= currentPath === '/runners' ? 'active' : '' %>">Runners</a>
 
             <% if (username) { %>
                 <% if (role === 'runner') { %>
-                    <a href="/submit-race" class="<%= currentPath === '/submit-race' ? 'active' : '' %>">Submit Race</a>
+                    <a href="/races/submit" class="<%= currentPath === '/submit-race' ? 'active' : '' %>">Submit Race</a>
                 <% } %>
             <% } %>
     

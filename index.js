@@ -3,6 +3,7 @@ const path = require('path');
 
 const express = require('express');
 const session = require('express-session');
+const cors = require('cors');
 const flash = require('connect-flash');
 const MongoStore = require('connect-mongo');
 const mongoose = require('mongoose');
@@ -20,7 +21,16 @@ const MONGODB_PASSWORD = process.env.MONGODB_PASSWORD;
 const User = require('./models/User');
 const Race = require('./models/Race');
 
+const adminRoutes = require('./routes/admin');
+const authRoutes = require('./routes/auth');
+const raceRoutes = require('./routes/races');
+
+const ensureRunner = require('./middleware/ensureRunner.js');
+
 const app = express();
+
+// Use the CORS middleware with default options, allowing all origins
+app.use(cors());
 
 // Make Express understand JSON and webforms
 app.use(express.json());
@@ -183,31 +193,6 @@ app.use((req, res, next) => {
   next();
 });
 
-// Middleware to check if the user is authenticated and an admin
-function ensureAdmin(req, res, next) {
-  if (req.isAuthenticated() && req.user.isAdmin) {
-      return next();
-  } else {
-      res.status(403).render('error', { 
-        title: 'Access Denied',
-        message: 'Access denied. You must be an admin to view this page.',
-        username: req.user ? req.user.username : null
-      });
-  }
-}
-
-// Middleware to check if the user is authenticated and a runner
-function ensureRunner(req, res, next) {
-  if (req.isAuthenticated() && req.user.role === 'runner') {
-      return next();
-  } else {
-      res.status(403).render('error', { 
-        title: 'Access Denied',
-        message: 'Access denied. You must be a runner to view this page.',
-        username: req.user ? req.user.username : null
-      });
-  }
-}
 
 // Routes  
 app.get('/', async (req, res) => {
@@ -234,19 +219,18 @@ app.get('/', async (req, res) => {
   }
 });
 
-app.get('/runners', async (req, res) => {
+app.get('/api/runners', async (req, res) => {
   try {
     // Fetch users with the role of "runner"
     const runners = await User.find({ role: 'runner' }).sort({ displayName: 1 }); // Sort by display name
 
-    // Render the runners list view and pass the runners data
-    res.render('runners', { title: 'Runners', runners: runners });
+    // Send the runners data as JSON
+    res.json(runners);
   } catch (err) {
     console.error('Error fetching runners:', err);
-    res.status(500).send('Error fetching runners');
+    res.status(500).json({ error: 'Error fetching runners' });
   }
 });
-
 
 app.get('/races', async (req, res) => {
   try {
@@ -343,130 +327,14 @@ app.get('/past-races', async (req, res) => {
   }
 });
 
+// Race routes
+app.use('/races', raceRoutes);
 
 // Admin routes
+app.use('/admin', adminRoutes);
 
-// Add user
-app.get('/add-user', ensureAdmin, (req, res) => {
-  res.render('add-user', { 
-    title: 'Add User',
-    successMessage: req.flash('success'),
-    errorMessage: req.flash('error')
-  });
-});
-
-app.post('/add-user', ensureAdmin, async (req, res) => {
-  const { discordUsername, displayName, role, isAdmin } = req.body;
-
-  try {
-      const user = await User.findOneAndUpdate(
-          { discordUsername },
-          { 
-            displayName,
-            role, 
-            isAdmin: isAdmin === 'on'
-          },
-          { new: true, upsert: true }
-      );
-      
-      req.flash('success', `User ${user.discordUsername} is now a ${user.role}`);
-      res.redirect('/add-user');
-  } catch (err) {
-      console.error(err);
-      req.flash('error', 'Internal Server Error');
-      res.redirect('/add-user');
-  }
-});
-
-// Mark race as complete
-app.get('/admin/complete-race/:raceId', ensureAdmin, async (req, res) => {
-  const { raceId } = req.params;
-
-  try {
-    const race = await Race.findById(raceId)
-      .populate('racer1', 'discordUsername displayName')
-      .populate('racer2', 'discordUsername displayName')
-      .populate('racer3', 'discordUsername displayName');
-
-    if (!race) {
-      return res.status(404).render('error', { 
-        title: 'Race Not Found',
-        message: 'The race you are trying to access does not exist.',
-        username: req.user ? req.user.username : null
-      });
-    }
-
-    res.render('complete-race', { 
-      title: 'Complete Race',
-      race: race,
-      scripts: ''
-    });
-
-  } catch (err) {
-    console.error('Error fetching race:', err);
-    res.status(500).send('Error fetching race');
-  }
-});
-
-app.post('/admin/complete-race/:raceId', ensureAdmin, async (req, res) => {
-  const { raceId } = req.params;
-  const { results } = req.body;
-
-  try {
-    const race = await Race.findById(raceId);
-
-    if (!race) {
-      return res.status(404).json({ message: 'Race not found' });
-    }
-
-    race.results = results.map((result, index) => ({
-      racer: race[`racer${index + 1}`]._id,
-      status: result.status,
-      finishTime: {
-        hours: result.finishTime.hours,
-        minutes: result.finishTime.minutes,
-        seconds: result.finishTime.seconds
-      }
-    }));
-
-    // Determine the winner based on the finish times
-    const finishedRacers = race.results.filter(r => r.status === 'Finished');
-    finishedRacers.sort((a, b) => {
-      const timeA = a.finishTime.hours * 3600 + a.finishTime.minutes * 60 + a.finishTime.seconds;
-      const timeB = b.finishTime.hours * 3600 + b.finishTime.minutes * 60 + b.finishTime.seconds;
-      return timeA - timeB;
-    });
-
-    if (finishedRacers.length > 0) {
-      race.winner = finishedRacers[0].racer;
-    }
-
-    race.completed = true;
-    await race.save();
-
-    res.redirect('/past-races');
-
-  } catch (err) {
-    console.error('Error completing race:', err);
-    res.status(500).json({ message: 'Error completing race' });
-  }
-});
-
-
-// Route to start the Discord authentication process
-app.get('/login', passport.authenticate('discord'));
-
-// Callback route that Discord will redirect to after login
-app.get('/auth/discord/callback', passport.authenticate('discord', {
-  failureRedirect: '/',
-  successRedirect: '/'
-}));
-
-// Logout route
-app.post('/logout', (req, res) => {
-  req.logout(() => {});
-  res.redirect('/');
-});
+// Auth routes
+app.use('/', authRoutes);
 
 // Start the server
 app.listen(process.env.PORT || 3000, () => {
