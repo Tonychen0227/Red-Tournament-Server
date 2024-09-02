@@ -3,6 +3,7 @@ const router = express.Router();
 const ensureAdmin = require('../middleware/ensureAdmin');
 
 const Race = require('../models/Race');
+const User = require('../models/User');
 
 // Mark race as complete
 router.get('/complete-race/:raceId', ensureAdmin, async (req, res) => {

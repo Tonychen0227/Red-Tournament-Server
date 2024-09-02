@@ -1,17 +1,17 @@
 require('dotenv').config();
-const path = require('path');
 
 const express = require('express');
 const session = require('express-session');
-const cors = require('cors');
-const flash = require('connect-flash');
+const rateLimit = require('express-rate-limit');
+
 const MongoStore = require('connect-mongo');
 const mongoose = require('mongoose');
+
 const passport = require('passport');
 const { Strategy } = require('@oauth-everything/passport-discord');
+
+const cors = require('cors');
 const helmet = require('helmet');
-const rateLimit = require('express-rate-limit');
-const expressLayouts = require('express-ejs-layouts');
 
 const DISCORD_CLIENT_ID = process.env.DISCORD_CLIENT_ID;
 const DISCORD_CLIENT_SECRET = process.env.DISCORD_CLIENT_SECRET;
@@ -19,23 +19,25 @@ const CALLBACK_URL = process.env.CALLBACK_URL;
 const MONGODB_PASSWORD = process.env.MONGODB_PASSWORD;
 
 const User = require('./models/User');
-const Race = require('./models/Race');
 
 const adminRoutes = require('./routes/admin');
 const authRoutes = require('./routes/auth');
 const raceRoutes = require('./routes/races');
 
-const ensureRunner = require('./middleware/ensureRunner.js');
-
 const app = express();
 
-// Use the CORS middleware with default options, allowing all origins
-app.use(cors());
+// Use the CORS middleware
+app.use(cors({
+  origin: process.env.FRONTEND_URL,
+  credentials: true, // Allow credentials (cookies, authorization headers, etc.)
+  }
+));
 
 // Make Express understand JSON and webforms
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Connect to MongoDB
 mongoose.connect(`mongodb+srv://liam:${MONGODB_PASSWORD}.7gth0.mongodb.net/?retryWrites=true&w=majority&appName=2024`, {
   dbName: 'tournament'
 });
@@ -46,17 +48,8 @@ db.once('open', () => {
     console.log('Connected to MongoDB');
 });
 
-// Serve static files from 'public' directory
-app.use(express.static(path.join(__dirname, 'public')));
-
 // Trust the Fly.io proxy
 app.set('trust proxy', 1);
-
-// Set view engine to EJS
-app.set('view engine', 'ejs');
-app.set('views', path.join(__dirname, 'views'));
-app.use(expressLayouts);
-app.set('layout', 'layout');
 
 // Set security-related HTTP headers
 app.use(helmet());
@@ -101,9 +94,6 @@ app.use(session({
   }
 }));
 
-// Flash middleware for success/error messages
-app.use(flash());
-
 // Initialise passport and session support
 app.use(passport.initialize());
 app.use(passport.session());
@@ -131,7 +121,6 @@ passport.deserializeUser(async (obj, done) => {
     done(err);
   }
 });
-
 
 // Set up the Discord strategy
 passport.use(new Strategy({
@@ -171,53 +160,10 @@ async (accessToken, refreshToken, profile, done) => {
   }
 }));
 
-
-// Middleware to set username and profileImage in res.locals for all routes
-app.use((req, res, next) => {
-  if (req.isAuthenticated()) {
-    res.locals.username = req.user.username;
-    res.locals.displayName = req.res.locals.displayName = req.user.displayName || req.user.global_name;
-    res.locals.profileImage = req.user.photos && req.user.photos.length > 0 ? req.user.photos[0].value : null;
-    res.locals.role = req.user.role;
-    res.locals.isAdmin = req.user.isAdmin;
-  } else {
-    res.locals.username = null;
-    res.locals.displayName = null;
-    res.locals.profileImage = null;
-    res.locals.role = null;
-    res.locals.isAdmin = false;
-  }
-
-  res.locals.currentPath = req.path;
-
-  next();
-});
-
-
 // Routes  
-app.get('/', async (req, res) => {
-  const title = 'Pokemon Red Tournament';
-
-  if (req.isAuthenticated()) {
-      const discordUsername = req.user.username;
-
-      try {
-          const user = await User.findOne({ discordUsername });
-
-          if (user) {
-              const role = user.role;
-              res.render('index', { title, username: discordUsername, role });
-          } else {
-              res.render('index', { title, username: discordUsername, role: 'commentator' });
-          }
-      } catch (err) {
-          console.error(err);
-          res.status(500).send('Internal Server Error');
-      }
-  } else {
-      res.render('index', { title, username: null, role: 'guest' });
-  }
-});
+app.use('/api/races', raceRoutes);
+app.use('/api/admin', adminRoutes);
+app.use('/api', authRoutes);
 
 app.get('/api/runners', async (req, res) => {
   try {
@@ -231,110 +177,6 @@ app.get('/api/runners', async (req, res) => {
     res.status(500).json({ error: 'Error fetching runners' });
   }
 });
-
-app.get('/races', async (req, res) => {
-  try {
-    // Fetch all upcoming races from the database, populating the racer details
-    const races = await Race.find({})
-      .populate('racer1', 'discordUsername displayName')
-      .populate('racer2', 'discordUsername displayName')
-      .populate('racer3', 'discordUsername displayName')
-      .sort({ datetime: 1 });  
-
-    res.render('races', { 
-      title: 'Upcoming Races', 
-      races: races 
-    });
-  } catch (err) {
-    console.error('Error fetching races:', err);
-    res.status(500).send('Error fetching races');
-  }
-});
-
-// Submit race
-app.get('/submit-race', ensureRunner, async (req, res) => {
-  try {
-    // Fetch all users who are runners, excluding the current user
-    // Is there  scope for restricting people to selecting those in their group?
-    const runners = await User.find({ 
-      role: 'runner', 
-      discordUsername: { $ne: req.user.username }
-      });
-
-      res.render('submit-race', { 
-          title: 'Submit a New Race', 
-          runners: runners, 
-          userTimezone: req.user.timezone || 'UTC'
-      });
-  } catch (err) {
-      console.error(err);
-      res.status(500).send('Error fetching runners');
-  }
-});
-
-app.post('/submit-race', ensureRunner, async (req, res) => {
-  try {
-    const { date, time, racer2, racer3 } = req.body;
-
-    // Combine date and time into a single Date object
-    const raceDateTime = new Date(`${date}T${time}:00Z`); // The 'Z' ensures it's treated as UTC
-
-    // Convert the Date object to a Unix timestamp (in seconds)
-    const unixTimestamp = Math.floor(raceDateTime.getTime() / 1000);
-
-    // Prepare the race object
-    const raceData = {
-      racer1: req.user._id, // The current user's ObjectID
-      racer2: racer2, // Racer 2 ObjectID from the form
-      racer3: null,
-      datetime: unixTimestamp // The race time as a Unix timestamp
-    };
-
-    // Only include racer3 if one is provided
-    if (racer3 && racer3 !== '') {
-      raceData.racer3 = racer3;
-    }
-
-    // Create a new race entry in the database
-    await Race.create(raceData);
-
-    // Redirect to the races page after successful submission
-    res.redirect('/races');
-  } catch (err) {
-    console.error('Error submitting race:', err);
-    res.status(500).send('Error submitting race');
-  }
-});
-
-app.get('/past-races', async (req, res) => {
-  try {
-    // Fetch all completed races from the database, populating the racer details
-    const races = await Race.find({ completed: true })
-      .populate('racer1', 'discordUsername displayName')
-      .populate('racer2', 'discordUsername displayName')
-      .populate('racer3', 'discordUsername displayName')
-      .populate('winner', 'discordUsername displayName')
-      .populate('results.racer', 'discordUsername displayName')
-      .sort({ datetime: -1 }); // Sort by datetime descending
-
-    res.render('past-races', { 
-      title: 'Past Races', 
-      races: races 
-    });
-  } catch (err) {
-    console.error('Error fetching past races:', err);
-    res.status(500).send('Error fetching past races');
-  }
-});
-
-// Race routes
-app.use('/races', raceRoutes);
-
-// Admin routes
-app.use('/admin', adminRoutes);
-
-// Auth routes
-app.use('/', authRoutes);
 
 // Start the server
 app.listen(process.env.PORT || 3000, () => {

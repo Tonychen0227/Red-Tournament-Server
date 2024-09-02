@@ -52,14 +52,37 @@ router.get('/login', passport.authenticate('discord'));
 
 // Callback route that Discord will redirect to after login
 router.get('/auth/discord/callback', passport.authenticate('discord', {
-  failureRedirect: '/',
-  successRedirect: '/'
+    failureRedirect: `${process.env.FRONTEND_URL}/`,
+    successRedirect: `${process.env.FRONTEND_URL}/`
 }));
 
-// Logout route
-router.post('/logout', (req, res) => {
-  req.logout(() => {});
-  res.redirect('/');
+router.get('/auth-status', (req, res) => {
+    if (req.isAuthenticated()) {
+        res.json(req.user);
+    } else {
+        res.status(401).json(null);
+    }
 });
-
+  
+router.post('/logout', (req, res, next) => {
+    req.logout((err) => {
+        if (err) {
+            console.error('Logout error:', err);
+            return next(err);
+        }
+      
+        // Destroy the session
+        req.session.destroy((err) => {
+            if (err) {
+                console.error('Session destroy error:', err);
+                return next(err);
+            }
+        
+            // Clear the session cookie
+            res.clearCookie('connect.sid');
+            res.json({ success: true });
+        });
+    });
+});
+  
 module.exports = router;
