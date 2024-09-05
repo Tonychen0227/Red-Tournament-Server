@@ -1,99 +1,180 @@
 const express = require('express');
 const router = express.Router();
+
 const Race = require('../models/Race');
-const User = require('../models/User');
+
 const ensureRunner = require('../middleware/ensureRunner');
 
 router.get('/', async (req, res) => {
     try {
-      // Fetch all upcoming races from the database, populating the racer details
-      const races = await Race.find({})
+        // Fetch all upcoming races (not completed) from the database, populating the racer details
+        const races = await Race.find({ completed: false }) // Filter to only get races that are not completed
         .populate('racer1', 'discordUsername displayName')
         .populate('racer2', 'discordUsername displayName')
         .populate('racer3', 'discordUsername displayName')
-        .sort({ datetime: 1 });  
+        .populate('commentators', 'discordUsername displayName')
+        .sort({ raceDateTime: 1 }); // Sorting by raceDateTime ascending (upcoming races first)
   
-      res.render('races', { 
-        title: 'Upcoming Races', 
-        races: races 
-      });
+        res.status(200).json(races);
     } catch (err) {
-      console.error('Error fetching races:', err);
-      res.status(500).send('Error fetching races');
+        console.error('Error fetching races:', err);
+        res.status(500).send('Error fetching races');
     }
-  });
+});
 
-router.get('/submit', ensureRunner, async (req, res) => {
-  try {
-    const runners = await User.find({ 
-      role: 'runner', 
-      discordUsername: { $ne: req.user.username }
-    });
+router.get('/ready-to-complete', async (req, res) => {
+    try {
+        // Fetch all races that are ready to be completed (date is past but not marked as completed)
+        const now = Math.floor(Date.now() / 1000); // Get current time as a Unix timestamp
+        const races = await Race.find({ 
+            completed: false, 
+            raceDateTime: { $lt: now } // Races that have passed but are not completed
+        })
+            .populate('racer1', 'discordUsername displayName')
+            .populate('racer2', 'discordUsername displayName')
+            .populate('racer3', 'discordUsername displayName')
+            .populate('commentators', 'discordUsername displayName')
+            .sort({ raceDateTime: 1 });
+    
+            res.status(200).json(races);
+    } catch (err) {
+        console.error('Error fetching races ready to complete:', err);
+        res.status(500).send('Error fetching races ready to complete');
+    }
+});
 
-    res.render('submit-race', { 
-      title: 'Submit a New Race', 
-      runners: runners, 
-      userTimezone: req.user.timezone || 'UTC'
-    });
-  } catch (err) {
-    console.error('Error fetching runners', err);
-    res.status(500).send('Error fetching runners');
-  }
+router.get('/completed', async (req, res) => {
+    try {
+        const races = await Race.find({ completed: true })
+        .populate('racer1', 'discordUsername displayName')
+        .populate('racer2', 'discordUsername displayName')
+        .populate('racer3', 'discordUsername displayName')
+        .populate('commentators', 'discordUsername displayName')
+        .populate('results.racer', 'discordUsername displayName')
+        .sort({ raceDateTime: -1 }); // Sort by raceDateTime descending
+        
+        res.status(200).json(races);
+    } catch (err) {
+        console.error('Error fetching completed races:', err);
+        res.status(500).send('Error fetching completed races');
+    }
+});
+
+router.get('/:id', async (req, res) => {
+    try {
+        const raceId = req.params.id;
+
+        // Fetch the race by its ObjectID, populating the racer details
+        const race = await Race.findById(raceId)
+        .populate('racer1', 'discordUsername displayName')
+        .populate('racer2', 'discordUsername displayName')
+        .populate('racer3', 'discordUsername displayName')
+        .populate('results.racer', 'discordUsername displayName')
+        .populate('commentators', 'discordUsername displayName'); 
+
+        if (!race) {
+            return res.status(404).json({ error: 'Race not found' });
+        }
+
+        // Send the race data back to the frontend
+        res.status(200).json(race);
+    } catch (err) {
+        console.error('Error fetching race:', err);
+        res.status(500).json({ error: 'Error fetching race' });
+    }
 });
 
 router.post('/submit', ensureRunner, async (req, res) => {
     try {
-      const { date, time, racer2, racer3 } = req.body;
-  
-      // Combine date and time into a single Date object
-      const raceDateTime = new Date(`${date}T${time}:00Z`); // The 'Z' ensures it's treated as UTC
-  
-      // Convert the Date object to a Unix timestamp (in seconds)
-      const unixTimestamp = Math.floor(raceDateTime.getTime() / 1000);
-  
-      // Prepare the race object
-      const raceData = {
+        const { date, time, racer2, racer3 } = req.body;
+
+        // Combine date and time into a single Date object (assuming UTC for now)
+        const raceDateTime = new Date(`${date}T${time}:00Z`);
+
+        // Convert the Date object to a Unix timestamp (in seconds)
+        const unixTimestamp = Math.floor(raceDateTime.getTime() / 1000);
+
+        // Get the current time when the race is submitted
+        const raceSubmitted = Math.floor(Date.now() / 1000);
+
+        // Prepare the race object with a maximum of 3 runners (2 is fine)
+        const raceData = {
         racer1: req.user._id, // The current user's ObjectID
-        racer2: racer2, // Racer 2 ObjectID from the form
-        racer3: null,
-        datetime: unixTimestamp // The race time as a Unix timestamp
-      };
-  
-      // Only include racer3 if one is provided
-      if (racer3 && racer3 !== '') {
-        raceData.racer3 = racer3;
-      }
-  
-      // Create a new race entry in the database
-      await Race.create(raceData);
-  
-      // Redirect to the races page after successful submission
-      res.redirect('/races');
-    } catch (err) {
-      console.error('Error submitting race:', err);
-      res.status(500).send('Error submitting race');
-    }
-  });
+        racer2: racer2,
+        racer3: racer3 || null, // Racer 3 can be null, for 2-man races
+        raceDateTime: unixTimestamp, // The race time as a Unix timestamp
+        raceSubmitted: raceSubmitted, // Unix timestamp
+        completed: false
+        };
 
-  router.get('/past', async (req, res) => {
+        // Create a new race entry in the database
+        const newRace = await Race.create(raceData);
+
+        res.status(200).json({
+            message: 'Race submitted successfully',
+            id: newRace._id
+        });
+    } catch (err) {
+        console.error('Error submitting race:', err);
+        res.status(500).json({ error: 'Error submitting race' });
+    }
+});
+
+router.post('/:id/complete', async (req, res) => {
     try {
-      // Fetch all completed races from the database, populating the racer details
-      const races = await Race.find({ completed: true })
-        .populate('racer1', 'discordUsername displayName')
-        .populate('racer2', 'discordUsername displayName')
-        .populate('racer3', 'discordUsername displayName')
-        .populate('winner', 'discordUsername displayName')
-        .populate('results.racer', 'discordUsername displayName')
-        .sort({ datetime: -1 }); // Sort by datetime descending
+        const raceId = req.params.id;
+        const { results } = req.body; // Expecting an array of results
   
-      res.render('past-races', { 
-        title: 'Past Races', 
-        races: races 
-      });
-    } catch (err) {
-      console.error('Error fetching past races:', err);
-      res.status(500).send('Error fetching past races');
-    }
-  });
+        const race = await Race.findById(raceId);
+  
+        if (!race) {
+            return res.status(404).json({ error: 'Race not found' });
+        }
 
+        race.results = results;
+        race.completed = true;
+      
+        await race.save();
+  
+        return res.status(200).json({ message: 'Race results recorded successfully' });
+    } catch (err) {
+        console.error('Error recording race results:', err);
+        return res.status(500).json({ error: 'Error recording race results' });
+    }
+});
+
+router.post('/:id/commentator', ensureRunner, async (req, res) => {
+    try {
+        const raceId = req.params.id;
+        const userId = req.user._id;
+
+        // Fetch the race by ID
+        const race = await Race.findById(raceId);
+  
+        if (!race) {
+            return res.status(404).json({ message: 'Race not found' });
+        }
+
+        // Check if the user is already a commentator
+        const isAlreadyCommentator = race.commentators.some(commentatorId => commentatorId.equals(userId));
+  
+        if (isAlreadyCommentator) {
+            return res.status(400).json({ message: 'You are already a commentator for this race' });
+        }
+  
+        // Add the user as a commentator (only store the ID)
+        // LIMIT THIS TO TWO FOR SWISS
+        // UNLIMITED FOR BRACKET
+        race.commentators.push(userId);
+  
+        // Save the updated race
+        await race.save();
+  
+        res.status(200).json({ message: 'You have been added as a commentator' });
+    } catch (err) {
+        console.error('Error adding commentator:', err);
+        res.status(500).json({ message: 'Error adding commentator' });
+    }
+});
+  
 module.exports = router;
