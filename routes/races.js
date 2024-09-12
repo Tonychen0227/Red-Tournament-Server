@@ -46,14 +46,36 @@ router.get('/ready-to-complete', async (req, res) => {
 router.get('/completed', async (req, res) => {
     try {
         const races = await Race.find({ completed: true })
-        .populate('racer1', 'discordUsername displayName')
-        .populate('racer2', 'discordUsername displayName')
-        .populate('racer3', 'discordUsername displayName')
-        .populate('commentators', 'discordUsername displayName')
-        .populate('results.racer', 'discordUsername displayName')
-        .sort({ raceDateTime: -1 }); // Sort by raceDateTime descending
+            .populate('racer1', 'discordUsername displayName')
+            .populate('racer2', 'discordUsername displayName')
+            .populate('racer3', 'discordUsername displayName')
+            .populate('commentators', 'discordUsername displayName')
+            .populate('results.racer', 'discordUsername displayName')
+            .sort({ raceDateTime: -1 }); // Sort by raceDateTime descending
         
-        res.status(200).json(races);
+        const rankedRaces = races.map(race => {
+            // Sort the race results directly in the results array
+            race.results = race.results
+                .filter(result => result.status === 'Finished')
+                .sort((a, b) => {
+                    // Sort by hours, then minutes, then seconds, then milliseconds
+                    if (a.finishTime.hours !== b.finishTime.hours) {
+                        return a.finishTime.hours - b.finishTime.hours;
+                    } else if (a.finishTime.minutes !== b.finishTime.minutes) {
+                        return a.finishTime.minutes - b.finishTime.minutes;
+                    } else if (a.finishTime.seconds !== b.finishTime.seconds) {
+                        return a.finishTime.seconds - b.finishTime.seconds;
+                    } else {
+                        return a.finishTime.milliseconds - b.finishTime.milliseconds;
+                    }
+                })
+                // Append non-finished results (DNF, DNS, DQ) after the finished ones
+                .concat(race.results.filter(result => result.status !== 'Finished'));
+
+            return race.toObject(); // Convert the race object back to a plain JavaScript object
+        });
+
+        res.status(200).json(rankedRaces);
     } catch (err) {
         console.error('Error fetching completed races:', err);
         res.status(500).send('Error fetching completed races');
@@ -123,7 +145,7 @@ router.post('/submit', ensureRunner, async (req, res) => {
 router.post('/:id/complete', async (req, res) => {
     try {
         const raceId = req.params.id;
-        const { results } = req.body; // Expecting an array of results
+        const { results } = req.body;
   
         const race = await Race.findById(raceId);
   

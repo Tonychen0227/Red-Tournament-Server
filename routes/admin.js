@@ -59,8 +59,8 @@ router.post('/complete-race/:raceId', ensureAdmin, async (req, res) => {
     // Determine the winner based on the finish times
     const finishedRacers = race.results.filter(r => r.status === 'Finished');
     finishedRacers.sort((a, b) => {
-      const timeA = a.finishTime.hours * 3600 + a.finishTime.minutes * 60 + a.finishTime.seconds;
-      const timeB = b.finishTime.hours * 3600 + b.finishTime.minutes * 60 + b.finishTime.seconds;
+      const timeA = a.finishTime.hours * 3600 + a.finishTime.minutes * 60 + a.finishTime.seconds + a.finishTime.milliseconds;
+      const timeB = b.finishTime.hours * 3600 + b.finishTime.minutes * 60 + b.finishTime.seconds + b.finishTime.milliseconds;
       return timeA - timeB;
     });
 
@@ -79,36 +79,32 @@ router.post('/complete-race/:raceId', ensureAdmin, async (req, res) => {
   }
 });
 
-// Add user
-router.get('/add-user', ensureAdmin, (req, res) => {
-  res.render('add-user', { 
-    title: 'Add User',
-    successMessage: req.flash('success'),
-    errorMessage: req.flash('error')
-  });
-});
-
 router.post('/add-user', ensureAdmin, async (req, res) => {
   const { discordUsername, displayName, role, isAdmin } = req.body;
 
   try {
-      const user = await User.findOneAndUpdate(
-          { discordUsername },
-          { 
-            displayName,
-            role, 
-            isAdmin: isAdmin === 'on'
-          },
-          { new: true, upsert: true }
-      );
-      
-      req.flash('success', `User ${user.discordUsername} is now a ${user.role}`);
-      res.redirect('/admin/add-user');
+    const user = await User.findOneAndUpdate(
+      { discordUsername }, // Find user by Discord username
+      { 
+        displayName,
+        role, 
+        isAdmin: isAdmin === 'on'
+      },
+      { new: true, upsert: true }
+    );
+    
+    res.status(200).json({
+      message: `User ${user.discordUsername} is now a ${user.role}`,
+      user
+    });
   } catch (err) {
-      console.error(err);
-      req.flash('error', 'Internal Server Error');
-      res.redirect('/admin/add-user');
+    console.error(err);
+    res.status(500).json({
+      message: 'Internal Server Error',
+      error: err.message
+    });
   }
 });
+
 
 module.exports = router;
