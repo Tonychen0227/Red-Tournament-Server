@@ -51,7 +51,7 @@ router.get('/completed', async (req, res) => {
             .populate('racer3', 'discordUsername displayName')
             .populate('commentators', 'discordUsername displayName')
             .populate('results.racer', 'discordUsername displayName')
-            .sort({ raceDateTime: -1 }); // Sort by raceDateTime descending
+            .sort({ raceDateTime: 1 }); // Sort by raceDateTime ascending
         
         const rankedRaces = races.map(race => {
             // Sort the race results directly in the results array
@@ -198,5 +198,38 @@ router.post('/:id/commentator', ensureRunner, async (req, res) => {
         res.status(500).json({ message: 'Error adding commentator' });
     }
 });
+
+router.post('/:id/remove-commentator', ensureRunner, async (req, res) => {
+    try {
+        const raceId = req.params.id;
+        const userId = req.user._id;
+
+        // Fetch the race by ID
+        const race = await Race.findById(raceId);
+
+        if (!race) {
+            return res.status(404).json({ message: 'Race not found' });
+        }
+
+        // Check if the user is in the commentators list
+        const isCommentator = race.commentators.some(commentatorId => commentatorId.equals(userId));
+
+        if (!isCommentator) {
+            return res.status(400).json({ message: 'You are not a commentator for this race' });
+        }
+
+        // Remove the user from the commentators array
+        race.commentators = race.commentators.filter(commentatorId => !commentatorId.equals(userId));
+
+        // Save the updated race
+        await race.save();
+
+        res.status(200).json({ message: 'You have been removed as a commentator' });
+    } catch (err) {
+        console.error('Error removing commentator:', err);
+        res.status(500).json({ message: 'Error removing commentator' });
+    }
+});
+
   
 module.exports = router;

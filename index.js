@@ -22,6 +22,7 @@ const User = require('./models/User');
 const adminRoutes = require('./routes/admin');
 const authRoutes = require('./routes/auth');
 const raceRoutes = require('./routes/races');
+const userRoutes = require('./routes/user');
 
 const ensureApiKey = require('./middleware/ensureApiKey');
 
@@ -131,10 +132,12 @@ passport.deserializeUser(async (obj, done) => {
 app.use('/api/races', ensureApiKey);
 app.use('/api/admin', ensureApiKey);
 app.use('/api/runners', ensureApiKey);
+app.use('/api/users', ensureApiKey);
 
 // Routes
 app.use('/api/races', raceRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/user', userRoutes);
 app.use('/api', authRoutes);
 
 app.get('/api/runners', async (req, res) => {

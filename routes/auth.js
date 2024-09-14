@@ -58,6 +58,7 @@ router.get('/auth/discord/callback', passport.authenticate('discord', {
 
 router.get('/auth-status', (req, res) => {
     if (req.isAuthenticated()) {
+        console.log('User in /auth-status:', req.user);
         res.json(req.user);
     } else {
         res.status(401).json(null);

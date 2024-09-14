@@ -106,5 +106,15 @@ router.post('/add-user', ensureAdmin, async (req, res) => {
   }
 });
 
+router.get('/audit-logs', async (req, res) => {
+  try {
+    const logs = await AuditLog.find().populate('user', 'displayName');
+    res.json(logs);
+  } catch (err) {
+    console.error('Error fetching audit logs:', err);
+    res.status(500).json({ error: 'Error fetching audit logs' });
+  }
+});
+
 
 module.exports = router;
