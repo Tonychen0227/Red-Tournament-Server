@@ -7,7 +7,11 @@ const ensureAuthenticated = require('../middleware/ensureAuthenticated');
 
 router.post('/timezone', ensureAuthenticated, async (req, res) => {
   const { timezone } = req.body;
-  if (!timezone) {
+
+  console.log(timezone);
+  
+
+  if (!timezone && timezone !== 0) {
     return res.status(400).json({ error: 'Timezone is required' });
   }
 

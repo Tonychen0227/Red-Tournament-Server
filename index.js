@@ -117,7 +117,8 @@ passport.deserializeUser(async (obj, done) => {
         _id: user._id,
         role: user.role,
         isAdmin: user.isAdmin,
-        displayName: user.displayName
+        displayName: user.displayName,
+        timezone: user.timezone 
       };
       done(null, fullUser);
     } else {

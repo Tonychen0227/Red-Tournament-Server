@@ -5,7 +5,7 @@ const userSchema = new mongoose.Schema({
     displayName: { type: String },
     role: { type: String, enum: ['runner', 'commentator'], required: true },
     isAdmin: { type: Boolean, default: false },
-    timezone: { type: String, default: null } 
+    timezone: { type: Number, default: null } 
 });
 
 const User = mongoose.model('User', userSchema);
