@@ -1,17 +1,20 @@
 const express = require('express');
 const router = express.Router();
 
+const User = require('../models/User');
 const Race = require('../models/Race');
+const Tournament = require('../models/Tournament');
 
 const ensureRunner = require('../middleware/ensureRunner');
+const ensureAdmin = require('../middleware/ensureAdmin');
 
 router.get('/', async (req, res) => {
     try {
         // Fetch all upcoming races (not completed) from the database, populating the racer details
         const races = await Race.find({ completed: false }) // Filter to only get races that are not completed
-        .populate('racer1', 'discordUsername displayName')
-        .populate('racer2', 'discordUsername displayName')
-        .populate('racer3', 'discordUsername displayName')
+        .populate('racer1', 'discordUsername displayName currentBracket')
+        .populate('racer2', 'discordUsername displayName currentBracket')
+        .populate('racer3', 'discordUsername displayName currentBracket')
         .populate('commentators', 'discordUsername displayName')
         .sort({ raceDateTime: 1 }); // Sorting by raceDateTime ascending (upcoming races first)
   
@@ -46,9 +49,9 @@ router.get('/ready-to-complete', async (req, res) => {
 router.get('/completed', async (req, res) => {
     try {
         const races = await Race.find({ completed: true })
-            .populate('racer1', 'discordUsername displayName')
-            .populate('racer2', 'discordUsername displayName')
-            .populate('racer3', 'discordUsername displayName')
+            .populate('racer1', 'discordUsername displayName currentBracket')
+            .populate('racer2', 'discordUsername displayName currentBracket')
+            .populate('racer3', 'discordUsername displayName currentBracket')
             .populate('commentators', 'discordUsername displayName')
             .populate('results.racer', 'discordUsername displayName')
             .sort({ raceDateTime: 1 }); // Sort by raceDateTime ascending
@@ -88,11 +91,11 @@ router.get('/:id', async (req, res) => {
 
         // Fetch the race by its ObjectID, populating the racer details
         const race = await Race.findById(raceId)
-        .populate('racer1', 'discordUsername displayName')
-        .populate('racer2', 'discordUsername displayName')
-        .populate('racer3', 'discordUsername displayName')
-        .populate('results.racer', 'discordUsername displayName')
-        .populate('commentators', 'discordUsername displayName'); 
+            .populate('racer1', 'discordUsername displayName')
+            .populate('racer2', 'discordUsername displayName')
+            .populate('racer3', 'discordUsername displayName')
+            .populate('results.racer', 'discordUsername displayName')
+            .populate('commentators', 'discordUsername displayName'); 
 
         if (!race) {
             return res.status(404).json({ error: 'Race not found' });
@@ -108,26 +111,39 @@ router.get('/:id', async (req, res) => {
 
 router.post('/submit', ensureRunner, async (req, res) => {
     try {
-        const { date, time, racer2, racer3 } = req.body;
+        const { raceDateTime, racer2, racer3 } = req.body;  // dateTime is expected to be a Unix timestamp
 
-        // Combine date and time into a single Date object (assuming UTC for now)
-        const raceDateTime = new Date(`${date}T${time}:00Z`);
-
-        // Convert the Date object to a Unix timestamp (in seconds)
-        const unixTimestamp = Math.floor(raceDateTime.getTime() / 1000);
-
-        // Get the current time when the race is submitted
         const raceSubmitted = Math.floor(Date.now() / 1000);
 
-        // Prepare the race object with a maximum of 3 runners (2 is fine)
         const raceData = {
-        racer1: req.user._id, // The current user's ObjectID
-        racer2: racer2,
-        racer3: racer3 || null, // Racer 3 can be null, for 2-man races
-        raceDateTime: unixTimestamp, // The race time as a Unix timestamp
-        raceSubmitted: raceSubmitted, // Unix timestamp
-        completed: false
+            racer1: req.user._id,
+            racer2: racer2,
+            racer3: racer3 || null, // Racer 3 can be null, for 2-man races
+            raceDateTime: raceDateTime, // Unix timestamp
+            raceSubmitted: raceSubmitted, // Unix timestamp
+            completed: false
         };
+
+        // Fetch the tournament
+        const tournament = await Tournament.findOne({ name: 'red2024' });
+
+        if (!tournament) {
+        return res.status(404).json({ error: 'Tournament not found' });
+        }
+
+        raceData.round = tournament.currentRound;
+
+        // If the round is not 'Seeding', pull the bracket from racer1
+        if (tournament.currentRound !== 'Seeding') {
+            const racer1 = await User.findById(req.user._id).select('currentBracket');
+
+            if (!racer1 || !racer1.currentBracket) {
+                return res.status(400).json({ error: 'Unable to get bracket' });
+            }
+            raceData.bracket = racer1.currentBracket;
+        } else {
+            raceData.bracket = 'Seeding';
+        }
 
         // Create a new race entry in the database
         const newRace = await Race.create(raceData);
@@ -142,10 +158,10 @@ router.post('/submit', ensureRunner, async (req, res) => {
     }
 });
 
-router.post('/:id/complete', async (req, res) => {
+router.post('/:id/complete', ensureAdmin, async (req, res) => {
     try {
         const raceId = req.params.id;
-        const { results } = req.body;
+        const { results, raceTimeId } = req.body;
   
         const race = await Race.findById(raceId);
   
@@ -154,8 +170,56 @@ router.post('/:id/complete', async (req, res) => {
         }
 
         race.results = results;
+        race.raceTimeId = raceTimeId;
+
         race.completed = true;
-      
+
+        // Compute the winner
+        const finishedResults = results.filter(result => result.status === 'Finished');
+
+        if (finishedResults.length > 0) {
+        // Sort the finished results by finish time
+        finishedResults.sort((a, b) => {
+            if (a.finishTime.hours !== b.finishTime.hours) {
+            return a.finishTime.hours - b.finishTime.hours;
+            } else if (a.finishTime.minutes !== b.finishTime.minutes) {
+            return a.finishTime.minutes - b.finishTime.minutes;
+            } else if (a.finishTime.seconds !== b.finishTime.seconds) {
+            return a.finishTime.seconds - b.finishTime.seconds;
+            } else {
+            return a.finishTime.milliseconds - b.finishTime.milliseconds;
+            }
+        });
+
+        // The winner is the racer with the fastest finish time
+        const winnerResult = finishedResults[0];
+        race.winner = winnerResult.racer;
+
+        } else {
+        // If no racers finished, set winner to null
+        race.winner = null;
+        }
+
+        // Fetch the current round from the Tournament collection
+        const tournament = await Tournament.findOne({ name: 'red2024' });
+        if (!tournament) {
+            return res.status(404).json({ error: 'Tournament not found' });
+        }
+
+        race.round = tournament.currentRound;
+
+        // If the round is not "Seeding", update hasDNF for relevant users
+        if (race.round !== 'Seeding') {
+            const dnfStatuses = ['DNF', 'DNS', 'DQ'];
+
+            for (const result of results) {
+                if (dnfStatuses.includes(result.status)) {
+                    // Find the user by their racer ID and update hasDNF to true
+                    await User.findByIdAndUpdate(result.racer, { hasDNF: true });
+                }
+            }
+        }
+
         await race.save();
   
         return res.status(200).json({ message: 'Race results recorded successfully' });
@@ -165,7 +229,7 @@ router.post('/:id/complete', async (req, res) => {
     }
 });
 
-router.post('/:id/commentator', ensureRunner, async (req, res) => {
+router.post('/:id/commentator', async (req, res) => {
     try {
         const raceId = req.params.id;
         const userId = req.user._id;
@@ -184,9 +248,21 @@ router.post('/:id/commentator', ensureRunner, async (req, res) => {
             return res.status(400).json({ message: 'You are already a commentator for this race' });
         }
   
-        // Add the user as a commentator (only store the ID)
-        // LIMIT THIS TO TWO FOR SWISS
-        // UNLIMITED FOR BRACKET
+        // Check the round type
+        const swissRounds = ['Seeding', 'Round 1', 'Round 2', 'Round 3'];
+        const bracketRounds = ['Semifinals', 'Final'];
+
+        if (swissRounds.includes(race.round)) {
+        // If the round is in the Swiss phase, limit to 2 commentators
+        if (race.commentators.length >= 2) {
+            return res.status(400).json({ message: 'Only two commentators are allowed for Swiss rounds' });
+        }
+        } else if (bracketRounds.includes(race.round)) {
+        // For Semifinals or Final, there is no limit, so just proceed to add the user
+        } else {
+        return res.status(400).json({ message: 'Invalid race round' });
+        }
+        
         race.commentators.push(userId);
   
         // Save the updated race

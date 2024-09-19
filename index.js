@@ -10,7 +10,6 @@ const MongoStore = require('connect-mongo');
 const mongoose = require('mongoose');
 
 const passport = require('passport');
-const { Strategy } = require('@oauth-everything/passport-discord');
 
 const cors = require('cors');
 //const helmet = require('helmet');
@@ -23,6 +22,7 @@ const adminRoutes = require('./routes/admin');
 const authRoutes = require('./routes/auth');
 const raceRoutes = require('./routes/races');
 const userRoutes = require('./routes/user');
+const tournamentRoutes = require('./routes/tournament');
 
 const ensureApiKey = require('./middleware/ensureApiKey');
 
@@ -118,7 +118,7 @@ passport.deserializeUser(async (obj, done) => {
         role: user.role,
         isAdmin: user.isAdmin,
         displayName: user.displayName,
-        timezone: user.timezone 
+        pronouns: user.pronouns 
       };
       done(null, fullUser);
     } else {
@@ -130,21 +130,25 @@ passport.deserializeUser(async (obj, done) => {
 });
 
 // Secure API routes with the API key
-app.use('/api/races', ensureApiKey);
+// app.use('/api/races', ensureApiKey);
 app.use('/api/admin', ensureApiKey);
+app.use('/api/tournament', ensureApiKey);
 app.use('/api/runners', ensureApiKey);
 app.use('/api/users', ensureApiKey);
 
 // Routes
 app.use('/api/races', raceRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/tournament', tournamentRoutes);
 app.use('/api/user', userRoutes);
 app.use('/api', authRoutes);
 
 app.get('/api/runners', async (req, res) => {
   try {
     // Fetch users with the role of "runner"
-    const runners = await User.find({ role: 'runner' }).sort({ displayName: 1 }); // Sort by display name
+    const runners = await User.find({ role: 'runner' })
+    .select('displayName discordUsername initialPot currentBracket')
+    .sort({ displayName: 1 }); // Sort by display name
     res.json(runners);
   } catch (err) {
     console.error('Error fetching runners:', err);

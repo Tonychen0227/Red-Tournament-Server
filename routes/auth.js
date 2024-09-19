@@ -27,18 +27,18 @@ async (accessToken, refreshToken, profile, done) => {
               discordUsername: profile.username,
               displayName: profile._json.global_name || profile.username,
               role: 'commentator',
-              isAdmin: false
+              isAdmin: false,
+              pronouns: null
           });
       } else {
-          // Update displayName if necessary
           user.displayName = profile._json.global_name || profile.username;
           await user.save();
       }
 
-      // Attach role, isAdmin, and displayName from the database to the profile object
       profile.role = user.role;
       profile.isAdmin = user.isAdmin;
       profile.displayName = user.displayName;
+      profile.pronouns = user.pronouns;
 
       return done(null, profile);
   } catch (err) {
@@ -47,10 +47,8 @@ async (accessToken, refreshToken, profile, done) => {
   }
 }));
 
-// Route to start the Discord authentication process
 router.get('/login', passport.authenticate('discord'));
 
-// Callback route that Discord will redirect to after login
 router.get('/auth/discord/callback', passport.authenticate('discord', {
     failureRedirect: `${process.env.FRONTEND_URL}/`,
     successRedirect: `${process.env.FRONTEND_URL}/`
@@ -58,7 +56,6 @@ router.get('/auth/discord/callback', passport.authenticate('discord', {
 
 router.get('/auth-status', (req, res) => {
     if (req.isAuthenticated()) {
-        console.log('User in /auth-status:', req.user);
         res.json(req.user);
     } else {
         res.status(401).json(null);
@@ -72,14 +69,12 @@ router.post('/logout', (req, res, next) => {
             return next(err);
         }
       
-        // Destroy the session
         req.session.destroy((err) => {
             if (err) {
                 console.error('Session destroy error:', err);
                 return next(err);
             }
         
-            // Clear the session cookie
             res.clearCookie('connect.sid');
             res.json({ success: true });
         });

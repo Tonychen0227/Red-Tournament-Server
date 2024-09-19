@@ -1,39 +1,10 @@
 const express = require('express');
 const router = express.Router();
+
 const ensureAdmin = require('../middleware/ensureAdmin');
 
 const Race = require('../models/Race');
 const User = require('../models/User');
-
-// Mark race as complete
-router.get('/complete-race/:raceId', ensureAdmin, async (req, res) => {
-  const { raceId } = req.params;
-
-  try {
-    const race = await Race.findById(raceId)
-      .populate('racer1', 'discordUsername displayName')
-      .populate('racer2', 'discordUsername displayName')
-      .populate('racer3', 'discordUsername displayName');
-
-    if (!race) {
-      return res.status(404).render('error', { 
-        title: 'Race Not Found',
-        message: 'The race you are trying to access does not exist.',
-        username: req.user ? req.user.username : null
-      });
-    }
-
-    res.render('complete-race', { 
-      title: 'Complete Race',
-      race: race,
-      scripts: ''
-    });
-
-  } catch (err) {
-    console.error('Error fetching race:', err);
-    res.status(500).send('Error fetching race');
-  }
-});
 
 router.post('/complete-race/:raceId', ensureAdmin, async (req, res) => {
   const { raceId } = req.params;
@@ -106,15 +77,33 @@ router.post('/add-user', ensureAdmin, async (req, res) => {
   }
 });
 
-router.get('/audit-logs', async (req, res) => {
+router.post('/set-pots', ensureAdmin, async (req, res) => {
+
+
+  const { userPots } = req.body; // Expecting an array of { userId, pot }
+
+  if (!Array.isArray(userPots) || userPots.length === 0) {
+    return res.status(400).json({ message: 'Invalid input data' });
+  }
+
   try {
-    const logs = await AuditLog.find().populate('user', 'displayName');
-    res.json(logs);
+    const bulkOps = userPots.map(({ userId, pot }) => ({
+      updateOne: {
+        filter: { _id: userId },
+        update: { initialPot: pot },
+      },
+    }));
+
+    const bulkWriteResult = await User.bulkWrite(bulkOps);
+
+    res.status(200).json({
+      message: 'Pots updated successfully',
+      result: bulkWriteResult,
+    });
   } catch (err) {
-    console.error('Error fetching audit logs:', err);
-    res.status(500).json({ error: 'Error fetching audit logs' });
+    console.error('Error updating pots:', err);
+    res.status(500).json({ message: 'Error updating pots', error: err.message });
   }
 });
-
 
 module.exports = router;
