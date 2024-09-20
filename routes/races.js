@@ -178,26 +178,26 @@ router.post('/:id/complete', ensureAdmin, async (req, res) => {
         const finishedResults = results.filter(result => result.status === 'Finished');
 
         if (finishedResults.length > 0) {
-        // Sort the finished results by finish time
-        finishedResults.sort((a, b) => {
-            if (a.finishTime.hours !== b.finishTime.hours) {
-            return a.finishTime.hours - b.finishTime.hours;
-            } else if (a.finishTime.minutes !== b.finishTime.minutes) {
-            return a.finishTime.minutes - b.finishTime.minutes;
-            } else if (a.finishTime.seconds !== b.finishTime.seconds) {
-            return a.finishTime.seconds - b.finishTime.seconds;
-            } else {
-            return a.finishTime.milliseconds - b.finishTime.milliseconds;
-            }
-        });
+            // Sort the finished results by finish time
+            finishedResults.sort((a, b) => {
+                if (a.finishTime.hours !== b.finishTime.hours) {
+                return a.finishTime.hours - b.finishTime.hours;
+                } else if (a.finishTime.minutes !== b.finishTime.minutes) {
+                return a.finishTime.minutes - b.finishTime.minutes;
+                } else if (a.finishTime.seconds !== b.finishTime.seconds) {
+                return a.finishTime.seconds - b.finishTime.seconds;
+                } else {
+                return a.finishTime.milliseconds - b.finishTime.milliseconds;
+                }
+            });
 
-        // The winner is the racer with the fastest finish time
-        const winnerResult = finishedResults[0];
-        race.winner = winnerResult.racer;
+            // The winner is the racer with the fastest finish time
+            const winnerResult = finishedResults[0];
+            race.winner = winnerResult.racer;
 
         } else {
-        // If no racers finished, set winner to null
-        race.winner = null;
+            // If no racers finished, set winner to null
+            race.winner = null;
         }
 
         // Fetch the current round from the Tournament collection
@@ -217,6 +217,16 @@ router.post('/:id/complete', ensureAdmin, async (req, res) => {
                     // Find the user by their racer ID and update hasDNF to true
                     await User.findByIdAndUpdate(result.racer, { hasDNF: true });
                 }
+            }
+
+            // Find the User associated with the winner and add points
+            const winner = await User.findById(race.winner);
+            
+            if (winner) {
+                winner.points = (winner.points || 0) + 4;
+                await winner.save(); // Save the updated user document
+            } else {
+                return res.status(404).json({ error: 'Winner not found' });
             }
         }
 

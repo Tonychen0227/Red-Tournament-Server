@@ -10,7 +10,9 @@ const userSchema = new mongoose.Schema({
     currentBracket: { type: String, enum: ['High', 'Middle', 'Low'] },
     points: { type: Number, default: 0 },
     tieBreakerValue: { type: Number, default: 0 },
-    hasDNF: { type: Boolean, default: false }
+    hasDNF: { type: Boolean, default: false },
+
+    currentGroup: { type: mongoose.Schema.Types.ObjectId, ref: 'Group' },
 });
 
 const User = mongoose.model('User', userSchema);

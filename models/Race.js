@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 
 const raceSchema = new mongoose.Schema({
 
-  raceTimeId: { type: String, unique: true },
+  raceTimeId: { type: String, unique: true, sparse: true },
 
   racer1: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   racer2: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
@@ -17,6 +17,7 @@ const raceSchema = new mongoose.Schema({
   commentators: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
 
   completed: { type: Boolean, default: false },
+  cancelled: { type: Boolean, default: false },
   
   results: [{
     racer: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
