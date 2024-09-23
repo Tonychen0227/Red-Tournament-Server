@@ -32,6 +32,40 @@ router.get('/standings', async (req, res) => {
   }
 });
 
+// router.get('/round', async (req, res) => {
+//   try {
+//       const tournament = await Tournament.findOne({ name: 'red2024' });
+
+//       if (!tournament) {
+//           return res.status(404).json({ error: 'Tournament not found' });
+//       }
+
+//       const currentRound = tournament.currentRound;
+
+//       // Find all races for the current round
+//       const races = await Race.find({ round: currentRound });
+
+//       const totalRaces = races.length;
+//       const completedRaces = races.filter(race => race.completed).length;
+
+//       const now = Math.floor(Date.now() / 1000);
+//       const submittedButNotReady = races.filter(race => !race.completed && race.raceDateTime > now).length;
+
+//       const canEndRound = totalRaces > 0 && completedRaces === totalRaces;
+
+//       return res.status(200).json({
+//           currentRound: tournament.currentRound,
+//           totalRaces,
+//           completedRaces,
+//           submittedButNotReady,
+//           canEndRound
+//       });
+//   } catch (err) {
+//       console.error('Error fetching current round:', err);
+//       return res.status(500).json({ error: 'Error fetching current round' });
+//   }
+// });
+
 router.get('/round', async (req, res) => {
   try {
       const tournament = await Tournament.findOne({ name: 'red2024' });
@@ -45,22 +79,29 @@ router.get('/round', async (req, res) => {
       // Find all races for the current round
       const races = await Race.find({ round: currentRound });
 
-      const totalRaces = races.length;
-      const completedRaces = races.filter(race => race.completed).length;
+      const now = Math.floor(Date.now() / 1000); // Current time in Unix timestamp
 
-      const canEndRound = totalRaces > 0 && completedRaces === totalRaces;
+      // Races submitted but still upcoming (not completed, raceDateTime is in the future)
+      const upcomingRaces = races.filter(race => !race.completed && race.raceDateTime > now).length;
+
+      // Races submitted and awaiting results (not completed, raceDateTime is in the past)
+      const awaitingResults = races.filter(race => !race.completed && race.raceDateTime <= now).length;
+
+      // Completed races
+      const completedRaces = races.filter(race => race.completed).length;
 
       return res.status(200).json({
           currentRound: tournament.currentRound,
-          totalRaces,
-          completedRaces,
-          canEndRound
+          upcomingRaces,
+          awaitingResults,
+          completedRaces
       });
   } catch (err) {
       console.error('Error fetching current round:', err);
       return res.status(500).json({ error: 'Error fetching current round' });
   }
 });
+
 
 router.post('/end-round', ensureAdmin, async (req, res) => {
   try {

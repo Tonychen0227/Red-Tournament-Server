@@ -12,9 +12,9 @@ router.get('/', async (req, res) => {
     try {
         // Fetch all upcoming races (not completed) from the database, populating the racer details
         const races = await Race.find({ completed: false }) // Filter to only get races that are not completed
-        .populate('racer1', 'discordUsername displayName currentBracket')
-        .populate('racer2', 'discordUsername displayName currentBracket')
-        .populate('racer3', 'discordUsername displayName currentBracket')
+        .populate('racer1', 'discordUsername displayName currentBracket initialPot')
+        .populate('racer2', 'discordUsername displayName currentBracket initialPot')
+        .populate('racer3', 'discordUsername displayName currentBracket initialPot')
         .populate('commentators', 'discordUsername displayName')
         .sort({ raceDateTime: 1 }); // Sorting by raceDateTime ascending (upcoming races first)
   
@@ -82,30 +82,6 @@ router.get('/completed', async (req, res) => {
     } catch (err) {
         console.error('Error fetching completed races:', err);
         res.status(500).send('Error fetching completed races');
-    }
-});
-
-router.get('/:id', async (req, res) => {
-    try {
-        const raceId = req.params.id;
-
-        // Fetch the race by its ObjectID, populating the racer details
-        const race = await Race.findById(raceId)
-            .populate('racer1', 'discordUsername displayName')
-            .populate('racer2', 'discordUsername displayName')
-            .populate('racer3', 'discordUsername displayName')
-            .populate('results.racer', 'discordUsername displayName')
-            .populate('commentators', 'discordUsername displayName'); 
-
-        if (!race) {
-            return res.status(404).json({ error: 'Race not found' });
-        }
-
-        // Send the race data back to the frontend
-        res.status(200).json(race);
-    } catch (err) {
-        console.error('Error fetching race:', err);
-        res.status(500).json({ error: 'Error fetching race' });
     }
 });
 
@@ -317,5 +293,117 @@ router.post('/:id/remove-commentator', ensureRunner, async (req, res) => {
     }
 });
 
+// Cancel a race
+router.post('/:id/cancel', ensureAdmin, async (req, res) => {
+    try {
+        const raceId = req.params.id;
+
+        // Find the race by ID
+        const race = await Race.findById(raceId);
+
+        if (!race) {
+            return res.status(404).json({ error: 'Race not found' });
+        }
+
+        race.cancelled = true;
+
+        // Save the race
+        await race.save();
+
+        return res.status(200).json({ message: 'Race cancelled successfully' });
+    } catch (err) {
+        console.error('Error cancelling race:', err);
+        return res.status(500).json({ error: 'Error cancelling race' });
+    }
+});
+
+// Uncancel a race
+router.post('/:id/uncancel', ensureAdmin, async (req, res) => {
+    try {
+        const raceId = req.params.id;
+
+        // Find the race by ID
+        const race = await Race.findById(raceId);
+
+        if (!race) {
+            return res.status(404).json({ error: 'Race not found' });
+        }
+
+        race.cancelled = false;
+
+        // Save the race
+        await race.save();
+
+        return res.status(200).json({ message: 'Race uncancelled successfully' });
+    } catch (err) {
+        console.error('Error uncancelling race:', err);
+        return res.status(500).json({ error: 'Error uncancelling race' });
+    }
+});
+
+router.get('/user', async (req, res) => {
+  try {
+    const userId = req.user._id;
+
+    // Find all races where the user is a racer (racer1, racer2, or racer3)
+    const racesParticipatedIn = await Race.find({
+      $or: [
+        { racer1: userId },
+        { racer2: userId },
+        { racer3: userId }
+      ]
+    })
+      .populate('racer1', 'discordUsername displayName')
+      .populate('racer2', 'discordUsername displayName')
+      .populate('racer3', 'discordUsername displayName')
+      .populate('commentators', 'discordUsername displayName')
+      .sort({ raceDateTime: 1 });
+
+    // Find all races where the user is a commentator
+    const racesCommentated = await Race.find({
+      commentators: userId
+    })
+      .populate('racer1', 'discordUsername displayName')
+      .populate('racer2', 'discordUsername displayName')
+      .populate('racer3', 'discordUsername displayName')
+      .populate('commentators', 'discordUsername displayName')
+      .sort({ raceDateTime: 1 });
+
+    // Send the response
+    res.status(200).json({
+      racesParticipatedIn,
+      racesCommentated
+    });
+  } catch (err) {
+    console.error('Error fetching user races:', err);
+    res.status(500).json({ error: 'Error fetching user races' });
+  }
+});
+
+router.get('/:id', async (req, res) => {
+    try {
+        const raceId = req.params.id;
+
+        // Fetch the race by its ObjectID, populating the racer details
+        const race = await Race.findById(raceId)
+            .populate('racer1', 'discordUsername displayName')
+            .populate('racer2', 'discordUsername displayName')
+            .populate('racer3', 'discordUsername displayName')
+            .populate('results.racer', 'discordUsername displayName')
+            .populate('commentators', 'discordUsername displayName'); 
+
+        if (!race) {
+            return res.status(404).json({ error: 'Race not found' });
+        }
+
+        // Send the race data back to the frontend
+        res.status(200).json(race);
+    } catch (err) {
+        console.error('Error fetching race:', err);
+        res.status(500).json({ error: 'Error fetching race' });
+    }
+});
+
+  
   
 module.exports = router;
