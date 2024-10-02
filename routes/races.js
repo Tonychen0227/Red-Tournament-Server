@@ -16,6 +16,7 @@ router.get('/', async (req, res) => {
         .populate('racer2', 'discordUsername displayName currentBracket initialPot')
         .populate('racer3', 'discordUsername displayName currentBracket initialPot')
         .populate('commentators', 'discordUsername displayName')
+        .populate('restreamer', 'discordUsername displayName')
         .sort({ raceDateTime: 1 }); // Sorting by raceDateTime ascending (upcoming races first)
   
         res.status(200).json(races);
@@ -54,6 +55,7 @@ router.get('/completed', async (req, res) => {
             .populate('racer3', 'discordUsername displayName currentBracket')
             .populate('commentators', 'discordUsername displayName')
             .populate('results.racer', 'discordUsername displayName')
+            .populate('restreamer', 'discordUsername displayName')
             .sort({ raceDateTime: 1 }); // Sort by raceDateTime ascending
         
         const rankedRaces = races.map(race => {
@@ -390,7 +392,8 @@ router.get('/:id', async (req, res) => {
             .populate('racer2', 'discordUsername displayName')
             .populate('racer3', 'discordUsername displayName')
             .populate('results.racer', 'discordUsername displayName')
-            .populate('commentators', 'discordUsername displayName'); 
+            .populate('commentators', 'discordUsername displayName')
+            .populate('restreamer', 'discordUsername displayName');
 
         if (!race) {
             return res.status(404).json({ error: 'Race not found' });
@@ -404,6 +407,54 @@ router.get('/:id', async (req, res) => {
     }
 });
 
-  
-  
+// Restreaming
+router.post('/:id/restream', ensureAdmin, async (req, res) => {
+    try {
+        const raceId = req.params.id;
+        const { restreamChannel } = req.body;
+
+        if (!restreamChannel) {
+            return res.status(400).json({ error: 'Restream channel is required' });
+        }
+
+        const race = await Race.findById(raceId);
+        if (!race) {
+            return res.status(404).json({ error: 'Race not found' });
+        }
+
+        race.restreamPlanned = true;
+        race.restreamChannel = restreamChannel;
+        race.restreamer = req.user._id;
+
+        await race.save();
+
+        res.status(200).json({ message: 'Restream planned successfully', race });
+    } catch (err) {
+        console.error('Error planning restream:', err);
+        res.status(500).json({ error: 'Error planning restream' });
+    }
+});
+
+router.post('/:id/cancel-restream', ensureAdmin, async (req, res) => {
+    try {
+        const raceId = req.params.id;
+
+        const race = await Race.findById(raceId);
+        if (!race) {
+            return res.status(404).json({ error: 'Race not found' });
+        }
+
+        race.restreamPlanned = false;
+        race.restreamChannel = 'RedRaceTV';
+        race.restreamer = null;
+
+        await race.save();
+
+        res.status(200).json({ message: 'Restream canceled successfully', race });
+    } catch (err) {
+        console.error('Error canceling restream:', err);
+        res.status(500).json({ error: 'Error canceling restream' });
+    }
+});
+
 module.exports = router;

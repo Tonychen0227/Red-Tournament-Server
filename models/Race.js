@@ -18,6 +18,10 @@ const raceSchema = new mongoose.Schema({
 
   completed: { type: Boolean, default: false },
   cancelled: { type: Boolean, default: false },
+
+  restreamPlanned: { type: Boolean, default: false },
+  restreamChannel: { type: String, default: 'RedRaceTV' },
+  restreamer: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }, // Admin who set the restream
   
   results: [{
     racer: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
@@ -27,7 +31,8 @@ const raceSchema = new mongoose.Schema({
       minutes: { type: Number, default: 0 },
       seconds: { type: Number, default: 0 },
       milliseconds: { type: Number, default: 0 }
-    }
+    },
+    dnfOrder: { type: Number, default: null }
   }],
 
   winner: {

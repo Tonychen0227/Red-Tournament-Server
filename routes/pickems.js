@@ -1,10 +1,15 @@
 const express = require('express');
 const router = express.Router();
 
+const mongoose = require('mongoose');
+
 const Pickems = require('../models/Pickems');
+const Tournament = require('../models/Tournament');
+
+const ensureAuthenticated = require('../middleware/ensureAuthenticated');
 
 // Submit one-off picks
-router.post('/submit-one-off', async (req, res) => {
+router.post('/submit-one-off', ensureAuthenticated, async (req, res) => {
   
   const { selectedRunners, selectedWinner, selectedBestTimeRunner, bestTime } = req.body;
 
@@ -41,6 +46,62 @@ router.post('/submit-one-off', async (req, res) => {
   }
 });
 
+// Submit round picks
+router.post('/submit-round-picks', ensureAuthenticated, async (req, res) => {
+  const { selectedWinners } = req.body;
+  const userId = req.user._id;
+
+  try {
+    // Fetch the active tournament
+    const tournament = await Tournament.findOne().sort({ _id: -1 }); // Adjust query if needed
+
+    if (!tournament) {
+      return res.status(404).json({ message: 'No active tournament found.' });
+    }
+
+    const currentRound = tournament.currentRound;
+
+    // Validate currentRound against the schema's enum
+    const validRoundsMap = {
+      'Round 1': 'round1Picks',
+      'Round 2': 'round2Picks',
+      'Round 3': 'round3Picks',
+      'Semifinals': 'semiFinalsPicks',
+    };
+
+    if (!validRoundsMap[currentRound]) {
+      return res.status(400).json({ message: `Invalid current round: ${currentRound}.` });
+    }
+
+    const roundField = validRoundsMap[currentRound];
+
+    const pickems = await Pickems.findOne({ userId });
+
+    if (!pickems) {
+      return res.status(404).json({ message: 'Pickems not found for this user.' });
+    }
+
+    // Check if picks for the current round have already been submitted
+    if (pickems[roundField] && pickems[roundField].length > 0) {
+      return res.status(400).json({ message: `You have already submitted picks for ${currentRound}.` });
+    }
+
+    // Validate selectedRunners array
+    if (!Array.isArray(selectedWinners) || selectedWinners.length === 0) {
+      return res.status(400).json({ message: 'Selected runners must be a non-empty array.' });
+    }
+
+    pickems[roundField] = selectedWinners;
+
+    await pickems.save();
+
+    res.status(200).json({ message: `${currentRound} picks submitted successfully.` });
+  } catch (error) {
+    console.error('Error submitting round picks:', error);
+    res.status(500).json({ message: 'Error submitting round picks.', error });
+  }
+});
+
 router.get('/', async (req, res) => {
   try {
     const userId = req.user._id; // Assuming the user ID comes from authentication
@@ -53,7 +114,6 @@ router.get('/', async (req, res) => {
     .populate('round1Picks', 'displayName')
     .populate('round2Picks', 'displayName')
     .populate('round3Picks', 'displayName')
-    .populate('round4Picks', 'displayName')
     .populate('semiFinalsPicks', 'displayName');
 
     // Return the pickems object if it exists, otherwise null
@@ -64,7 +124,7 @@ router.get('/', async (req, res) => {
   }
 });
 
-// Get points for all Pickems entries ordered by points (descending)
+// Get points for all Pickems players, ordered by points (descending)
 router.get('/leaderboard', async (req, res) => {
   try {
     // Find all Pickems entries, sort by points in descending order, and populate the userId with username

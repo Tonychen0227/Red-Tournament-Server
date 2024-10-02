@@ -15,7 +15,6 @@ const pickemsSchema = new Schema({
   round1Picks: [{ type: Schema.Types.ObjectId, ref: 'User' }], // Array of user IDs (User references)
   round2Picks: [{ type: Schema.Types.ObjectId, ref: 'User' }], // Array of user IDs (User references)
   round3Picks: [{ type: Schema.Types.ObjectId, ref: 'User' }], // Array of user IDs (User references)
-  round4Picks: [{ type: Schema.Types.ObjectId, ref: 'User' }], // Array of user IDs (User references)
 
   semiFinalsPicks: [{ type: Schema.Types.ObjectId, ref: 'User' }], // Array of user IDs (User references)
 
