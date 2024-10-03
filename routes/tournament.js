@@ -148,6 +148,189 @@ function getNextRound(currentRound) {
   return rounds[currentIndex + 1] || 'Completed';
 }
 
+// async function processRaceResults(races, currentRound) {
+//   const bracketPoints = {
+//     High: 3,
+//     Middle: 1,
+//     Low: 0,
+//   };
+
+//   // Map to keep track of users to update
+//   const usersToUpdate = {};
+
+//   for (const race of races) {
+//     // Collect all racers
+//     const racers = [race.racer1, race.racer2, race.racer3].filter(racer => racer);
+
+//     // Create a mapping of racer IDs to their results
+//     const racerResultsMap = {};
+//     for (const result of race.results) {
+//       racerResultsMap[result.racer.toString()] = result;
+//     }
+
+//     // Create an array of racer-result pairs
+//     const racerResultPairs = racers.map(racer => ({
+//       racer,
+//       result: racerResultsMap[racer._id.toString()]
+//     }));
+
+//     // Define a status order for sorting
+//     const statusOrder = { 'Finished': 0, 'DNF': 1, 'DNS': 2 };
+
+//     // Sort the racerResultPairs
+//     racerResultPairs.sort((a, b) => {
+//       const aStatusOrder = statusOrder[a.result.status] ?? 3;
+//       const bStatusOrder = statusOrder[b.result.status] ?? 3;
+
+//       if (aStatusOrder !== bStatusOrder) {
+//         return aStatusOrder - bStatusOrder;
+//       } else if (a.result.status === 'Finished') {
+//         // Compare finish times
+//         const aTime = (a.result.finishTime.hours || 0) * 3600000 +
+//                       (a.result.finishTime.minutes || 0) * 60000 +
+//                       (a.result.finishTime.seconds || 0) * 1000 +
+//                       (a.result.finishTime.milliseconds || 0);
+
+//         const bTime = (b.result.finishTime.hours || 0) * 3600000 +
+//                       (b.result.finishTime.minutes || 0) * 60000 +
+//                       (b.result.finishTime.seconds || 0) * 1000 +
+//                       (b.result.finishTime.milliseconds || 0);
+
+//         return aTime - bTime;
+//       } else {
+//         // Both did not finish; order doesn't matter
+//         return 0;
+//       }
+//     });
+
+//     // Assign placements
+//     const winnerPair = racerResultPairs[0];
+//     const winner = winnerPair.racer;
+
+//     const losersPairs = racerResultPairs.slice(1);
+
+//     console.log(`Processing race with ${racers.length} racers for round: ${currentRound}`);
+
+//     // Seeding round logic
+//     if (currentRound === 'Seeding') {
+//       // Assign brackets based on placements
+//       winner.currentBracket = 'High';
+//       winner.points = (winner.points || 0) + bracketPoints['High']; // Update points
+//       winner.tieBreakerValue += bracketPoints['High'];
+
+//       console.log(`${winner.displayName} is now in High bracket with ${bracketPoints['High']} points`);
+//       usersToUpdate[winner._id.toString()] = winner;
+
+//       if (losersPairs.length >= 1) {
+//         const secondPlacePair = losersPairs[0];
+//         const secondPlace = secondPlacePair.racer;
+//         secondPlace.currentBracket = 'Middle';
+//         secondPlace.points = (secondPlace.points || 0) + bracketPoints['Middle']; // Update points
+//         secondPlace.tieBreakerValue += bracketPoints['Middle'];
+//         console.log(`${secondPlace.displayName} is now in Middle bracket with ${bracketPoints['Middle']} points`);
+//         usersToUpdate[secondPlace._id.toString()] = secondPlace;
+//       }
+
+//       if (losersPairs.length === 2) {
+//         const thirdPlacePair = losersPairs[1];
+//         const thirdPlace = thirdPlacePair.racer;
+//         thirdPlace.currentBracket = 'Low';
+//         thirdPlace.points = (thirdPlace.points || 0) + bracketPoints['Low']; // Update points
+//         thirdPlace.tieBreakerValue += bracketPoints['Low'];
+//         console.log(`${thirdPlace.displayName} is now in Low bracket with ${bracketPoints['Low']} points`);
+//         usersToUpdate[thirdPlace._id.toString()] = thirdPlace;
+//       }
+
+//     } else { // Non-seeding rounds
+//       // Get current bracket of the winner
+//       const currentBracket = winner.currentBracket;
+//       console.log(`Non-seeding round for ${winner.displayName} in ${currentBracket} bracket`);
+
+//       if (currentBracket === 'High') {
+//         // Winner stays in High bracket
+//         winner.points = (winner.points || 0) + bracketPoints['High']; // Update points
+//         winner.tieBreakerValue += bracketPoints['High'];
+//         console.log(`${winner.displayName} stays in High bracket with ${bracketPoints['High']} points and tiebreaker value: ${winner.tieBreakerValue}`);
+//         usersToUpdate[winner._id.toString()] = winner;
+
+//         for (const loserPair of losersPairs) {
+//           const loser = loserPair.racer;
+//           const loserResult = loserPair.result;
+
+//           // Check if the loser is the last in placement or did not finish
+//           if (loserResult.status === 'DNF' || loser === losersPairs[losersPairs.length - 1].racer) {
+//             // Demote to Middle bracket
+//             loser.currentBracket = 'Middle';
+//             loser.points = (loser.points || 0) + bracketPoints['Middle']; // Update points
+//             loser.tieBreakerValue += bracketPoints['Middle'];
+//             console.log(`${loser.displayName} moves to Middle bracket with ${bracketPoints['Middle']} points and tiebreaker value: ${loser.tieBreakerValue}`);
+//           } else {
+//             // Stays in High bracket
+//             loser.points = (loser.points || 0) + bracketPoints['High']; // Update points
+//             loser.tieBreakerValue += bracketPoints['High'];
+//             console.log(`${loser.displayName} stays in High bracket with ${bracketPoints['High']} points and tiebreaker value: ${loser.tieBreakerValue}`);
+//           }
+//           usersToUpdate[loser._id.toString()] = loser;
+//         }
+
+//       } else if (currentBracket === 'Middle') {
+//         // Winner promoted to High bracket
+//         winner.currentBracket = 'High';
+//         winner.points = (winner.points || 0) + bracketPoints['High']; // Update points
+//         winner.tieBreakerValue += bracketPoints['High'];
+//         console.log(`${winner.displayName} is promoted to High bracket with ${bracketPoints['High']} points and tiebreaker value: ${winner.tieBreakerValue}`);
+//         usersToUpdate[winner._id.toString()] = winner;
+
+//         for (const loserPair of losersPairs) {
+//           const loser = loserPair.racer;
+//           const loserResult = loserPair.result;
+
+//           if (loserResult.status === 'DNF' || loser === losersPairs[losersPairs.length - 1].racer) {
+//             // Demote to Low bracket
+//             loser.currentBracket = 'Low';
+//             loser.points = (loser.points || 0) + bracketPoints['Low']; // Update points
+//             loser.tieBreakerValue += bracketPoints['Low'];
+//             console.log(`${loser.displayName} moves to Low bracket with ${bracketPoints['Low']} points and tiebreaker value: ${loser.tieBreakerValue}`);
+//           } else {
+//             // Stays in Middle bracket
+//             loser.points = (loser.points || 0) + bracketPoints['Middle']; // Update points
+//             loser.tieBreakerValue += bracketPoints['Middle'];
+//             console.log(`${loser.displayName} stays in Middle bracket with ${bracketPoints['Middle']} points and tiebreaker value: ${loser.tieBreakerValue}`);
+//           }
+//           usersToUpdate[loser._id.toString()] = loser;
+//         }
+
+//       } else if (currentBracket === 'Low') {
+//         // Winner promoted to Middle bracket
+//         winner.currentBracket = 'Middle';
+//         winner.points = (winner.points || 0) + bracketPoints['Middle']; // Update points
+//         winner.tieBreakerValue += bracketPoints['Middle'];
+//         console.log(`${winner.displayName} is promoted to Middle bracket with ${bracketPoints['Middle']} points and tiebreaker value: ${winner.tieBreakerValue}`);
+//         usersToUpdate[winner._id.toString()] = winner;
+
+//         for (const loserPair of losersPairs) {
+//           const loser = loserPair.racer;
+//           // Losers stay in Low bracket
+//           loser.points = (loser.points || 0) + bracketPoints['Low']; // Update points
+//           loser.tieBreakerValue += bracketPoints['Low'];
+//           console.log(`${loser.displayName} stays in Low bracket with ${bracketPoints['Low']} points and tiebreaker value: ${loser.tieBreakerValue}`);
+//           usersToUpdate[loser._id.toString()] = loser;
+//         }
+//       }
+//     }
+//   }
+
+//   // Now save all users, ensuring we only save each one once
+//   const userUpdates = [];
+//   for (const userId in usersToUpdate) {
+//     const user = usersToUpdate[userId];
+//     userUpdates.push(user.save());
+//   }
+
+//   // Wait for all updates to complete
+//   await Promise.all(userUpdates);
+// }
+
 async function processRaceResults(races, currentRound) {
   const bracketPoints = {
     High: 3,
@@ -171,35 +354,43 @@ async function processRaceResults(races, currentRound) {
     // Create an array of racer-result pairs
     const racerResultPairs = racers.map(racer => ({
       racer,
-      result: racerResultsMap[racer._id.toString()]
+      result: racerResultsMap[racer._id.toString()],
     }));
 
     // Define a status order for sorting
-    const statusOrder = { 'Finished': 0, 'DNF': 1, 'DNS': 2 };
+    const statusOrder = { 'Finished': 0, 'DNF': 1, 'DNS': 2, 'DQ': 3 };
 
     // Sort the racerResultPairs
     racerResultPairs.sort((a, b) => {
-      const aStatusOrder = statusOrder[a.result.status] ?? 3;
-      const bStatusOrder = statusOrder[b.result.status] ?? 3;
+      const aStatusOrder = statusOrder[a.result.status] ?? 4; // Default to 4 if status not recognized
+      const bStatusOrder = statusOrder[b.result.status] ?? 4;
 
       if (aStatusOrder !== bStatusOrder) {
         return aStatusOrder - bStatusOrder;
-      } else if (a.result.status === 'Finished') {
-        // Compare finish times
-        const aTime = (a.result.finishTime.hours || 0) * 3600000 +
-                      (a.result.finishTime.minutes || 0) * 60000 +
-                      (a.result.finishTime.seconds || 0) * 1000 +
-                      (a.result.finishTime.milliseconds || 0);
-
-        const bTime = (b.result.finishTime.hours || 0) * 3600000 +
-                      (b.result.finishTime.minutes || 0) * 60000 +
-                      (b.result.finishTime.seconds || 0) * 1000 +
-                      (b.result.finishTime.milliseconds || 0);
-
-        return aTime - bTime;
       } else {
-        // Both did not finish; order doesn't matter
-        return 0;
+        if (a.result.status === 'Finished') {
+          // Compare finish times
+          const aTime = (a.result.finishTime.hours || 0) * 3600000 +
+                        (a.result.finishTime.minutes || 0) * 60000 +
+                        (a.result.finishTime.seconds || 0) * 1000 +
+                        (a.result.finishTime.milliseconds || 0);
+
+          const bTime = (b.result.finishTime.hours || 0) * 3600000 +
+                        (b.result.finishTime.minutes || 0) * 60000 +
+                        (b.result.finishTime.seconds || 0) * 1000 +
+                        (b.result.finishTime.milliseconds || 0);
+
+          return aTime - bTime; // Faster time ranks higher
+        } else if (a.result.status === 'DNF' && b.result.status === 'DNF') {
+          // Compare dnfOrder (lower dnfOrder means earlier DNF, thus worse placement)
+          const aDnfOrder = a.result.dnfOrder || Number.MAX_SAFE_INTEGER; // Handle null or undefined
+          const bDnfOrder = b.result.dnfOrder || Number.MAX_SAFE_INTEGER;
+
+          return aDnfOrder - bDnfOrder; // Higher dnfOrder ranks higher
+        } else {
+          // For other statuses or equal statuses without specific ordering
+          return 0;
+        }
       }
     });
 
@@ -215,17 +406,19 @@ async function processRaceResults(races, currentRound) {
     if (currentRound === 'Seeding') {
       // Assign brackets based on placements
       winner.currentBracket = 'High';
+      winner.points = (winner.points || 0) + bracketPoints['High']; // Update points
       winner.tieBreakerValue += bracketPoints['High'];
 
-      console.log(`${winner.displayName} is now in High bracket`);
+      console.log(`${winner.displayName} is now in High bracket with ${bracketPoints['High']} points`);
       usersToUpdate[winner._id.toString()] = winner;
 
       if (losersPairs.length >= 1) {
         const secondPlacePair = losersPairs[0];
         const secondPlace = secondPlacePair.racer;
         secondPlace.currentBracket = 'Middle';
+        secondPlace.points = (secondPlace.points || 0) + bracketPoints['Middle']; // Update points
         secondPlace.tieBreakerValue += bracketPoints['Middle'];
-        console.log(`${secondPlace.displayName} is now in Middle bracket`);
+        console.log(`${secondPlace.displayName} is now in Middle bracket with ${bracketPoints['Middle']} points`);
         usersToUpdate[secondPlace._id.toString()] = secondPlace;
       }
 
@@ -233,8 +426,9 @@ async function processRaceResults(races, currentRound) {
         const thirdPlacePair = losersPairs[1];
         const thirdPlace = thirdPlacePair.racer;
         thirdPlace.currentBracket = 'Low';
+        thirdPlace.points = (thirdPlace.points || 0) + bracketPoints['Low']; // Update points
         thirdPlace.tieBreakerValue += bracketPoints['Low'];
-        console.log(`${thirdPlace.displayName} is now in Low bracket`);
+        console.log(`${thirdPlace.displayName} is now in Low bracket with ${bracketPoints['Low']} points`);
         usersToUpdate[thirdPlace._id.toString()] = thirdPlace;
       }
 
@@ -245,8 +439,9 @@ async function processRaceResults(races, currentRound) {
 
       if (currentBracket === 'High') {
         // Winner stays in High bracket
+        winner.points = (winner.points || 0) + bracketPoints['High']; // Update points
         winner.tieBreakerValue += bracketPoints['High'];
-        console.log(`${winner.displayName} stays in High bracket with tiebreaker value: ${winner.tieBreakerValue}`);
+        console.log(`${winner.displayName} stays in High bracket with ${bracketPoints['High']} points and tiebreaker value: ${winner.tieBreakerValue}`);
         usersToUpdate[winner._id.toString()] = winner;
 
         for (const loserPair of losersPairs) {
@@ -257,12 +452,14 @@ async function processRaceResults(races, currentRound) {
           if (loserResult.status === 'DNF' || loser === losersPairs[losersPairs.length - 1].racer) {
             // Demote to Middle bracket
             loser.currentBracket = 'Middle';
+            loser.points = (loser.points || 0) + bracketPoints['Middle']; // Update points
             loser.tieBreakerValue += bracketPoints['Middle'];
-            console.log(`${loser.displayName} moves to Middle bracket with tiebreaker value: ${loser.tieBreakerValue}`);
+            console.log(`${loser.displayName} moves to Middle bracket with ${bracketPoints['Middle']} points and tiebreaker value: ${loser.tieBreakerValue}`);
           } else {
             // Stays in High bracket
+            loser.points = (loser.points || 0) + bracketPoints['High']; // Update points
             loser.tieBreakerValue += bracketPoints['High'];
-            console.log(`${loser.displayName} stays in High bracket with tiebreaker value: ${loser.tieBreakerValue}`);
+            console.log(`${loser.displayName} stays in High bracket with ${bracketPoints['High']} points and tiebreaker value: ${loser.tieBreakerValue}`);
           }
           usersToUpdate[loser._id.toString()] = loser;
         }
@@ -270,8 +467,9 @@ async function processRaceResults(races, currentRound) {
       } else if (currentBracket === 'Middle') {
         // Winner promoted to High bracket
         winner.currentBracket = 'High';
+        winner.points = (winner.points || 0) + bracketPoints['High']; // Update points
         winner.tieBreakerValue += bracketPoints['High'];
-        console.log(`${winner.displayName} is promoted to High bracket with tiebreaker value: ${winner.tieBreakerValue}`);
+        console.log(`${winner.displayName} is promoted to High bracket with ${bracketPoints['High']} points and tiebreaker value: ${winner.tieBreakerValue}`);
         usersToUpdate[winner._id.toString()] = winner;
 
         for (const loserPair of losersPairs) {
@@ -281,12 +479,14 @@ async function processRaceResults(races, currentRound) {
           if (loserResult.status === 'DNF' || loser === losersPairs[losersPairs.length - 1].racer) {
             // Demote to Low bracket
             loser.currentBracket = 'Low';
+            loser.points = (loser.points || 0) + bracketPoints['Low']; // Update points
             loser.tieBreakerValue += bracketPoints['Low'];
-            console.log(`${loser.displayName} moves to Low bracket with tiebreaker value: ${loser.tieBreakerValue}`);
+            console.log(`${loser.displayName} moves to Low bracket with ${bracketPoints['Low']} points and tiebreaker value: ${loser.tieBreakerValue}`);
           } else {
             // Stays in Middle bracket
+            loser.points = (loser.points || 0) + bracketPoints['Middle']; // Update points
             loser.tieBreakerValue += bracketPoints['Middle'];
-            console.log(`${loser.displayName} stays in Middle bracket with tiebreaker value: ${loser.tieBreakerValue}`);
+            console.log(`${loser.displayName} stays in Middle bracket with ${bracketPoints['Middle']} points and tiebreaker value: ${loser.tieBreakerValue}`);
           }
           usersToUpdate[loser._id.toString()] = loser;
         }
@@ -294,15 +494,17 @@ async function processRaceResults(races, currentRound) {
       } else if (currentBracket === 'Low') {
         // Winner promoted to Middle bracket
         winner.currentBracket = 'Middle';
+        winner.points = (winner.points || 0) + bracketPoints['Middle']; // Update points
         winner.tieBreakerValue += bracketPoints['Middle'];
-        console.log(`${winner.displayName} is promoted to Middle bracket with tiebreaker value: ${winner.tieBreakerValue}`);
+        console.log(`${winner.displayName} is promoted to Middle bracket with ${bracketPoints['Middle']} points and tiebreaker value: ${winner.tieBreakerValue}`);
         usersToUpdate[winner._id.toString()] = winner;
 
         for (const loserPair of losersPairs) {
           const loser = loserPair.racer;
           // Losers stay in Low bracket
+          loser.points = (loser.points || 0) + bracketPoints['Low']; // Update points
           loser.tieBreakerValue += bracketPoints['Low'];
-          console.log(`${loser.displayName} stays in Low bracket with tiebreaker value: ${loser.tieBreakerValue}`);
+          console.log(`${loser.displayName} stays in Low bracket with ${bracketPoints['Low']} points and tiebreaker value: ${loser.tieBreakerValue}`);
           usersToUpdate[loser._id.toString()] = loser;
         }
       }

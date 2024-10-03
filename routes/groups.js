@@ -12,13 +12,6 @@ router.post('/', ensureAdmin, async (req, res) => {
   try {
     const { pot1UserId, pot2UserId, pot3UserId } = req.body;
 
-    // console.log(req);
-
-    // Validate input
-    // if (!pot1UserId || !pot2UserId) {
-    //   return res.status(400).json({ error: 'At least two users are required' });
-    // }
-
     // Fetch the current tournament
     const tournament = await Tournament.findOne({ name: 'red2024' });
 
@@ -32,9 +25,9 @@ router.post('/', ensureAdmin, async (req, res) => {
     const memberIds = [pot1UserId, pot2UserId];
     if (pot3UserId) memberIds.push(pot3UserId);
 
-    // Generate the next groupNumber
-    const lastGroup = await Group.findOne().sort({ groupNumber: -1 }).exec();
-    const nextGroupNumber = lastGroup ? lastGroup.groupNumber + 1 : 1;
+   // Count groups for the current round to generate the next groupNumber
+   const groupCountForCurrentRound = await Group.countDocuments({ round: currentRound });
+   const nextGroupNumber = groupCountForCurrentRound + 1; // Next group number starts from 1
 
     // Create new group
     const newGroup = new Group({
@@ -69,11 +62,31 @@ router.get('/', async (req, res) => {
   }
 });
 
+// router.get('/count', async (req, res) => {
+//   try {
+//     const groupCount = await Group.countDocuments();
+//     res.json({ count: groupCount });
+//   } catch (err) {
+//     res.status(500).json({ error: 'Server error' });
+//   }
+// });
+
 router.get('/count', async (req, res) => {
   try {
-    const groupCount = await Group.countDocuments();
+    // Fetch the tournament to get the current round
+    const tournament = await Tournament.findOne({ name: 'red2024' });
+    if (!tournament) {
+      return res.status(404).json({ error: 'Tournament not found' });
+    }
+
+    const currentRound = tournament.currentRound;
+
+    // Count groups for the current round
+    const groupCount = await Group.countDocuments({ round: currentRound });
+
     res.json({ count: groupCount });
   } catch (err) {
+    console.error('Error counting groups:', err);
     res.status(500).json({ error: 'Server error' });
   }
 });
