@@ -57,7 +57,7 @@ mongoose.connect(`mongodb+srv://liam:${MONGODB_PASSWORD}.7gth0.mongodb.net/?retr
 const db = mongoose.connection;
 db.on('error', console.error.bind(console, 'connection error:'));
 db.once('open', () => {
-    console.log('Connected to MongoDB');
+    console.log('Connected to MongoDB: Production ✅');
 });
 
 // Trust the Fly.io proxy
@@ -140,7 +140,7 @@ passport.deserializeUser(async (obj, done) => {
 // app.use('/api/races', ensureApiKey);
 app.use('/api/admin', ensureApiKey);
 app.use('/api/tournament', ensureApiKey);
-app.use('/api/pickems', ensureApiKey);
+// app.use('/api/pickems', ensureApiKey);
 // app.use('/api/groups', ensureApiKey);
 app.use('/api/runners', ensureApiKey);
 app.use('/api/users', ensureApiKey);
@@ -156,10 +156,26 @@ app.use('/api', authRoutes);
 
 app.get('/api/runners', async (req, res) => {
   try {
-    // Fetch users with the role of "runner"
-    const runners = await User.find({ role: 'runner' })
-    .select('displayName discordUsername initialPot currentBracket')
-    .sort({ displayName: 1 }); // Sort by display name
+    // Fetch users with the role of "runner" and sort case-insensitively
+    const runners = await User.aggregate([
+      { $match: { role: 'runner' } }, // Fetch only runners
+      { 
+        $project: {
+          displayName: 1,
+          discordUsername: 1,
+          initialPot: 1,
+          currentBracket: 1,
+          displayNameLower: { $toLower: "$displayName" } // Create a field for case-insensitive sort
+        }
+      },
+      { $sort: { displayNameLower: 1 } }, // Sort by the lowercase display name
+      { 
+        $project: { 
+          displayNameLower: 0 // Remove the temporary field after sorting
+        }
+      }
+    ]);
+    
     res.json(runners);
   } catch (err) {
     console.error('Error fetching runners:', err);

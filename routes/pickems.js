@@ -102,9 +102,10 @@ router.post('/submit-round-picks', ensureAuthenticated, async (req, res) => {
   }
 });
 
+// Get current user's Pickems
 router.get('/', async (req, res) => {
   try {
-    const userId = req.user._id; // Assuming the user ID comes from authentication
+    const userId = req.user._id;
     
     // Find the pickems and populate all user-related fields
     const pickems = await Pickems.findOne({ userId })
@@ -129,7 +130,7 @@ router.get('/leaderboard', ensureAuthenticated, async (req, res) => {
   try {
     // Find all Pickems entries, sort by points in descending order, and populate the userId with username
     const pickemsList = await Pickems.find()
-      .populate('userId', 'displayName') // Populate userId to get the displayName
+      .populate('userId', 'displayName discordUsername') // Populate userId to get the displayName
       .select('userId points') // Select only the points and userId fields
       .sort({ points: -1 }); // Sort by points in descending order
 
@@ -146,22 +147,32 @@ router.get('/leaderboard', ensureAuthenticated, async (req, res) => {
   }
 });
 
-
-// Get the user's Pickems
+// Get a user's Pickems by userId
 router.get('/:userId', async (req, res) => {
-    const { userId } = req.params;
+  const { userId } = req.params;
 
-    try {
-        const pickems = await Pickems.findOne({ userId }).populate('userId', 'username');
-        
-        if (!pickems) {
-        return res.status(404).json({ message: 'Pickems not found for this user' });
-        }
+  try {
+      // Find the Pickems for the provided userId and populate user-related fields
+      const pickems = await Pickems.findOne({ userId })
+          .populate('top9', 'displayName') // Populate top9 with displayName field
+          .populate('overallWinner', 'displayName')
+          .populate('bestTimeWho', 'displayName')
+          .populate('round1Picks', 'displayName')
+          .populate('round2Picks', 'displayName')
+          .populate('round3Picks', 'displayName')
+          .populate('semiFinalsPicks', 'displayName')
+          .populate('userId', 'username'); // Populate the userId with the username field
 
-        res.status(200).json(pickems);
-    } catch (error) {
-        res.status(500).json({ message: 'Error retrieving pickems', error });
-    }
+      if (!pickems) {
+        return res.status(200).json(null);
+        // return res.status(404).json({ message: 'Pickems not found for this user' });
+      }
+
+      res.status(200).json(pickems);
+  } catch (error) {
+      console.error('Error retrieving Pickems:', error);
+      res.status(500).json({ message: 'Error retrieving Pickems', error });
+  }
 });
 
 

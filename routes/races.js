@@ -137,6 +137,17 @@ router.post('/submit', ensureRunner, async (req, res) => {
             return res.status(400).json({ error: 'Racer1 does not belong to any group' });
         }
 
+        // // Check if a race already exists for this group and round
+        // TODO: Test and deploy this
+        // const existingRace = await Race.findOne({
+        //     round: tournament.currentRound,
+        //     'racer1': racer1._id,
+        // });
+
+        // if (existingRace) {
+        //     return res.status(400).json({ error: 'A race has already been submitted for this group in the current round.' });
+        // }
+
         const groupId = racer1.currentGroup;
 
         const group = await Group.findById(groupId);
@@ -405,6 +416,7 @@ router.post('/:id/uncancel', ensureAdmin, async (req, res) => {
     }
 });
 
+// Get current user's races
 router.get('/user', async (req, res) => {
   try {
     const userId = req.user._id;
@@ -443,6 +455,47 @@ router.get('/user', async (req, res) => {
     res.status(500).json({ error: 'Error fetching user races' });
   }
 });
+
+// Get races for a specific user by userId
+router.get('/user/:userId', async (req, res) => {
+    const { userId } = req.params;
+  
+    try {
+      // Find all races where the user is a racer (racer1, racer2, or racer3)
+      const racesParticipatedIn = await Race.find({
+        $or: [
+          { racer1: userId },
+          { racer2: userId },
+          { racer3: userId }
+        ]
+      })
+        .populate('racer1', 'discordUsername displayName')
+        .populate('racer2', 'discordUsername displayName')
+        .populate('racer3', 'discordUsername displayName')
+        .populate('commentators', 'discordUsername displayName')
+        .sort({ raceDateTime: 1 });
+  
+      // Find all races where the user is a commentator
+      const racesCommentated = await Race.find({
+        commentators: userId
+      })
+        .populate('racer1', 'discordUsername displayName')
+        .populate('racer2', 'discordUsername displayName')
+        .populate('racer3', 'discordUsername displayName')
+        .populate('commentators', 'discordUsername displayName')
+        .sort({ raceDateTime: 1 });
+  
+      // Send the response
+      res.status(200).json({
+        racesParticipatedIn,
+        racesCommentated
+      });
+    } catch (err) {
+      console.error('Error fetching user races:', err);
+      res.status(500).json({ error: 'Error fetching user races' });
+    }
+  });
+  
 
 router.get('/:id', async (req, res) => {
     try {
