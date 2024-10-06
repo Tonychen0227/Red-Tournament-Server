@@ -126,6 +126,25 @@ router.post('/submit', ensureRunner, async (req, res) => {
         // Create a new race entry in the database
         const newRace = await Race.create(raceData);
 
+         // Add the race start time to the group
+        const racer1 = await User.findById(req.user._id).select('currentGroup');
+
+        if (!racer1 || !racer1.currentGroup) {
+            return res.status(400).json({ error: 'Racer1 does not belong to any group' });
+        }
+
+        const groupId = racer1.currentGroup;
+
+        const group = await Group.findById(groupId);
+
+        if (!group) {
+            return res.status(400).json({ error: 'Associated group not found for the racers' });
+        }
+
+        group.raceStartTime = raceDateTime;
+        group.currentRace = newRace._id;
+        await group.save();
+
         res.status(200).json({
             message: 'Race submitted successfully',
             id: newRace._id

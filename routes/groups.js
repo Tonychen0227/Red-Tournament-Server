@@ -47,29 +47,32 @@ router.post('/', ensureAdmin, async (req, res) => {
     res.status(201).json(newGroup);
   } catch (err) {
     console.log(err);
-    res.status(500).json({ error: 'Server error' });
+    res.status(500).json({ error: 'Server erfyror' });
   }
 });
 
 router.get('/', async (req, res) => {
   try {
-    const groups = await Group.find()
+    // Fetch the Tournament document (e.g., 'red2024')
+    const tournament = await Tournament.findOne({ name: 'red2024' });
+
+    if (!tournament) {
+      return res.status(404).json({ error: 'Tournament not found' });
+    }
+
+    const currentRound = tournament.currentRound;
+
+    // Fetch groups where group.round matches the current round
+    const groups = await Group.find({ round: currentRound })
       .populate('members')
       .exec();
+
     res.json(groups);
   } catch (err) {
+    console.error('Error fetching groups:', err);
     res.status(500).json({ error: 'Server error' });
   }
 });
-
-// router.get('/count', async (req, res) => {
-//   try {
-//     const groupCount = await Group.countDocuments();
-//     res.json({ count: groupCount });
-//   } catch (err) {
-//     res.status(500).json({ error: 'Server error' });
-//   }
-// });
 
 router.get('/count', async (req, res) => {
   try {
