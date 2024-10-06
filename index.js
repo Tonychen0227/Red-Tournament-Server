@@ -140,7 +140,7 @@ passport.deserializeUser(async (obj, done) => {
 // app.use('/api/races', ensureApiKey);
 app.use('/api/admin', ensureApiKey);
 app.use('/api/tournament', ensureApiKey);
-// app.use('/api/pickems', ensureApiKey);
+app.use('/api/pickems', ensureApiKey);
 // app.use('/api/groups', ensureApiKey);
 app.use('/api/runners', ensureApiKey);
 app.use('/api/users', ensureApiKey);

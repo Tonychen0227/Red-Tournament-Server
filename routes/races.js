@@ -3,10 +3,14 @@ const router = express.Router();
 
 const User = require('../models/User');
 const Race = require('../models/Race');
+const Group = require('../models/Group');
 const Tournament = require('../models/Tournament');
+const Pickems = require('../models/Pickems');
 
 const ensureRunner = require('../middleware/ensureRunner');
 const ensureAdmin = require('../middleware/ensureAdmin');
+
+const POINTS_PER_CORRECT_PICK = 5;
 
 router.get('/', async (req, res) => {
     try {
@@ -168,7 +172,6 @@ router.post('/:id/complete', ensureAdmin, async (req, res) => {
 
         race.results = results;
         race.raceTimeId = raceTimeId;
-
         race.completed = true;
 
         // Compute the winner
@@ -178,13 +181,13 @@ router.post('/:id/complete', ensureAdmin, async (req, res) => {
             // Sort the finished results by finish time
             finishedResults.sort((a, b) => {
                 if (a.finishTime.hours !== b.finishTime.hours) {
-                return a.finishTime.hours - b.finishTime.hours;
+                    return a.finishTime.hours - b.finishTime.hours;
                 } else if (a.finishTime.minutes !== b.finishTime.minutes) {
-                return a.finishTime.minutes - b.finishTime.minutes;
+                    return a.finishTime.minutes - b.finishTime.minutes;
                 } else if (a.finishTime.seconds !== b.finishTime.seconds) {
-                return a.finishTime.seconds - b.finishTime.seconds;
+                    return a.finishTime.seconds - b.finishTime.seconds;
                 } else {
-                return a.finishTime.milliseconds - b.finishTime.milliseconds;
+                    return a.finishTime.milliseconds - b.finishTime.milliseconds;
                 }
             });
 
@@ -221,9 +224,49 @@ router.post('/:id/complete', ensureAdmin, async (req, res) => {
             
             if (winner) {
                 winner.points = (winner.points || 0) + 4;
-                await winner.save(); // Save the updated user document
+                await winner.save();
             } else {
                 return res.status(404).json({ error: 'Winner not found' });
+            }
+        }
+
+        // Pickems points assignment
+        if (race.winner) {
+            const round = race.round;
+
+            // Map round names to Pickems fields
+            const validRoundsMap = {
+                'Round 1': 'round1Picks',
+                'Round 2': 'round2Picks',
+                'Round 3': 'round3Picks',
+                'Semifinals': 'semiFinalsPicks',
+            };
+
+            const pickField = validRoundsMap[round];
+
+            if (pickField) {
+                // Find all Pickems that have the correct pick for this round and haven't already been scored for this race
+                const matchingPickems = await Pickems.find({
+                    [pickField]: race.winner,
+                }).populate('userId');
+
+                if (matchingPickems.length > 0) {
+                    console.log(`✅ Race ${race._id} (${round}): Winner is ${race.winner}. ${matchingPickems.length} user(s) picked correctly.`);
+
+                    // Update points for each matching Pickems
+                    const updatePromises = matchingPickems.map(async (pickem) => {
+                        pickem.points += POINTS_PER_CORRECT_PICK;
+                        await pickem.save();
+
+                        console.log(`   - User ID: ${pickem.userId._id}, Username: ${pickem.userId.displayName}, New Points: ${pickem.points}`);
+                    });
+
+                    await Promise.all(updatePromises);
+
+                    console.log(`🔄 Processed race ${race._id}. Awarded ${matchingPickems.length} user(s) with ${POINTS_PER_CORRECT_PICK} point(s) each.`);
+                } else {
+                    console.log(`No users correctly picked the winner for race ${race._id} (${round}).`);
+                }
             }
         }
 

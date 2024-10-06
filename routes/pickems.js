@@ -125,7 +125,7 @@ router.get('/', async (req, res) => {
 });
 
 // Get points for all Pickems players, ordered by points (descending)
-router.get('/leaderboard', async (req, res) => {
+router.get('/leaderboard', ensureAuthenticated, async (req, res) => {
   try {
     // Find all Pickems entries, sort by points in descending order, and populate the userId with username
     const pickemsList = await Pickems.find()

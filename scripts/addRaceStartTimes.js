@@ -3,7 +3,7 @@ const Race = require('../models/Race');
 const Group = require('../models/Group');
 const User = require('../models/User');
 
-mongoose.connect(`mongodb+srv://liam:PASTEPASSWORDHERE@2024.7gth0.mongodb.net/?retryWrites=true&w=majority&appName=2024`, {
+mongoose.connect(`mongodb+srv://liam:PASTEPASSWORD.7gth0.mongodb.net/?retryWrites=true&w=majority&appName=2024`, {
     dbName: 'tournament'
   });
 
