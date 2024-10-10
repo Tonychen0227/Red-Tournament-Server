@@ -9,6 +9,7 @@ const Pickems = require('../models/Pickems');
 
 const ensureRunner = require('../middleware/ensureRunner');
 const ensureAdmin = require('../middleware/ensureAdmin');
+const ensureAuthenticated = require('../middleware/ensureAuthenticated');
 
 const POINTS_PER_CORRECT_PICK = 5;
 
@@ -336,7 +337,7 @@ router.post('/:id/commentator', async (req, res) => {
     }
 });
 
-router.post('/:id/remove-commentator', ensureRunner, async (req, res) => {
+router.post('/:id/remove-commentator', ensureAuthenticated, async (req, res) => {
     try {
         const raceId = req.params.id;
         const userId = req.user._id;

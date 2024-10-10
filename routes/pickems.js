@@ -126,7 +126,7 @@ router.get('/', async (req, res) => {
 });
 
 // Get points for all Pickems players, ordered by points (descending)
-router.get('/leaderboard', ensureAuthenticated, async (req, res) => {
+router.get('/leaderboard', async (req, res) => {
   try {
     // Find all Pickems entries, sort by points in descending order, and populate the userId with username
     const pickemsList = await Pickems.find()
@@ -165,7 +165,6 @@ router.get('/:userId', async (req, res) => {
 
       if (!pickems) {
         return res.status(200).json(null);
-        // return res.status(404).json({ message: 'Pickems not found for this user' });
       }
 
       res.status(200).json(pickems);
@@ -174,6 +173,5 @@ router.get('/:userId', async (req, res) => {
       res.status(500).json({ message: 'Error retrieving Pickems', error });
   }
 });
-
 
 module.exports = router;

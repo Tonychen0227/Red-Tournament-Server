@@ -4,7 +4,6 @@ const path = require('path');
 
 const express = require('express');
 const session = require('express-session');
-const rateLimit = require('express-rate-limit');
 
 const MongoStore = require('connect-mongo');
 const mongoose = require('mongoose');
@@ -12,7 +11,6 @@ const mongoose = require('mongoose');
 const passport = require('passport');
 
 const cors = require('cors');
-//const helmet = require('helmet');
 
 const MONGODB_PASSWORD = process.env.MONGODB_PASSWORD;
 
@@ -57,38 +55,11 @@ mongoose.connect(`mongodb+srv://liam:${MONGODB_PASSWORD}.7gth0.mongodb.net/?retr
 const db = mongoose.connection;
 db.on('error', console.error.bind(console, 'connection error:'));
 db.once('open', () => {
-    console.log('Connected to MongoDB: Production ✅');
+    console.log('Connected to MongoDB');
 });
 
 // Trust the Fly.io proxy
 app.set('trust proxy', 1);
-
-// This kills routing on mobile for some reason:
-// Set security-related HTTP headers
-//app.use(helmet());
-// app.use(helmet.contentSecurityPolicy({
-//   directives: {
-//     defaultSrc: ["'self'"],
-//     imgSrc: ["'self'", "https://cdn.discordapp.com"],
-//     scriptSrc: ["'self'", "'unsafe-inline'"],
-//     styleSrc: ["'self'", "'unsafe-inline'"],
-//     fontSrc: ["'self'"],
-//     connectSrc: ["'self'"],
-//     objectSrc: ["'none'"],
-//     frameSrc: ["'none'"],
-//     baseUri: ["'self'"],
-//     formAction: ["'self'"]
-//   }
-// }));
-
-// Set up rate limiting
-// const limiter = rateLimit({
-//     windowMs: 15 * 60 * 1000, // 15 minutes
-//     max: 100, // limit each IP to 100 requests per windowMs
-//     message: "Too many requests from this IP, please try again later."
-// });
-
-// app.use(limiter);
 
 // Set up session middleware with connect-mongo
 app.use(session({
@@ -103,7 +74,8 @@ app.use(session({
   cookie: {
     secure: process.env.NODE_ENV === 'production',
     httpOnly: true,
-    sameSite: 'lax'
+    sameSite: 'lax',
+    maxAge: 24 * 60 * 60 * 1000 
   }
 }));
 
@@ -137,13 +109,13 @@ passport.deserializeUser(async (obj, done) => {
 });
 
 // Secure API routes with the API key
-// app.use('/api/races', ensureApiKey);
 app.use('/api/admin', ensureApiKey);
 app.use('/api/tournament', ensureApiKey);
-// app.use('/api/pickems', ensureApiKey);
-// app.use('/api/groups', ensureApiKey);
+app.use('/api/pickems', ensureApiKey);
 app.use('/api/runners', ensureApiKey);
 app.use('/api/users', ensureApiKey);
+// app.use('/api/groups', ensureApiKey);
+// app.use('/api/races', ensureApiKey);
 
 // Routes
 app.use('/api/races', raceRoutes);
@@ -183,9 +155,9 @@ app.get('/api/runners', async (req, res) => {
   }
 });
 
-// For all other routes, send the index.html file (Angular will handle the routing)
+// For all other routes, send the index.html file (Angular then handles the routing)
 app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html')); // Make sure this points to your index.html
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
 // Start the server
