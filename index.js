@@ -44,7 +44,7 @@ app.use(express.urlencoded({ extended: true }));
 
 // Connect to MongoDB (Development)
 // mongoose.connect(`mongodb+srv://liam:${MONGODB_PASSWORD}.7gth0.mongodb.net/?retryWrites=true&w=majority&appName=2024`, {
-//   dbName: 'tournament_test'
+//   dbName: 'tournament_test2'
 // });
 
 // Connect to MongoDB (Production)
