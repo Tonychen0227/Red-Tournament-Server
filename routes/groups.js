@@ -51,6 +51,7 @@ router.post('/', ensureAdmin, async (req, res) => {
   }
 });
 
+// Only gets current groups
 router.get('/', async (req, res) => {
   try {
     // Fetch the Tournament document (e.g., 'red2024')
@@ -73,6 +74,34 @@ router.get('/', async (req, res) => {
     res.status(500).json({ error: 'Server error' });
   }
 });
+
+// router.get('/', async (req, res) => {
+//   try {
+//     // Fetch the Tournament document (e.g., 'red2024')
+//     const tournament = await Tournament.findOne({ name: 'red2024' });
+
+//     if (!tournament) {
+//       return res.status(404).json({ error: 'Tournament not found' });
+//     }
+
+//     const currentRound = tournament.currentRound;
+
+//     // Fetch all groups, regardless of the round
+//     const groups = await Group.find({})
+//       .populate('members')
+//       .exec();
+
+//     // Send both the current round and all groups
+//     res.json({
+//       currentRound,
+//       groups
+//     });
+//   } catch (err) {
+//     console.error('Error fetching groups:', err);
+//     res.status(500).json({ error: 'Server error' });
+//   }
+// });
+
 
 router.get('/count', async (req, res) => {
   try {
