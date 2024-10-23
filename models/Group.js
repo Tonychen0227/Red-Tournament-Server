@@ -4,7 +4,7 @@ const groupSchema = new mongoose.Schema({
     groupNumber: { type: Number, required: true},
     members: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
     round: { type: String, enum: ['Seeding', 'Round 1', 'Round 2', 'Round 3', 'Semifinals', 'Final'], required: true },
-
+    bracket: { type: String, enum: ['Seeding', 'High', 'Middle', 'Low'] },
     raceStartTime: { type: Number, default: null }, // Unix timestamp
 });
 

@@ -21,6 +21,7 @@ const authRoutes = require('./routes/auth');
 const raceRoutes = require('./routes/races');
 const userRoutes = require('./routes/user');
 const pickemsRoutes = require('./routes/pickems');
+const statsRoutes = require('./routes/stats');
 const tournamentRoutes = require('./routes/tournament');
 const groupRoutes = require('./routes/groups');
 
@@ -111,9 +112,10 @@ passport.deserializeUser(async (obj, done) => {
 // Secure API routes with the API key
 app.use('/api/admin', ensureApiKey);
 app.use('/api/tournament', ensureApiKey);
-app.use('/api/pickems', ensureApiKey);
 app.use('/api/runners', ensureApiKey);
 app.use('/api/users', ensureApiKey);
+app.use('/api/stats', ensureApiKey);
+app.use('/api/pickems', ensureApiKey);
 // app.use('/api/groups', ensureApiKey);
 // app.use('/api/races', ensureApiKey);
 
@@ -123,6 +125,7 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/tournament', tournamentRoutes);
 app.use('/api/groups', groupRoutes);
 app.use('/api/user', userRoutes);
+app.use('/api/stats', statsRoutes);
 app.use('/api/pickems', pickemsRoutes);
 app.use('/api', authRoutes);
 

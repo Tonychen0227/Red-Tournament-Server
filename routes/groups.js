@@ -29,11 +29,20 @@ router.post('/', ensureAdmin, async (req, res) => {
    const groupCountForCurrentRound = await Group.countDocuments({ round: currentRound });
    const nextGroupNumber = groupCountForCurrentRound + 1; // Next group number starts from 1
 
+    // Fetch the first member to determine the group's bracket
+    const firstMember = await User.findById(pot1UserId).exec();
+    if (!firstMember) {
+        return res.status(404).json({ error: 'First member (pot1UserId) not found' });
+    }
+
+    const bracket = firstMember.currentBracket;
+
     // Create new group
     const newGroup = new Group({
       groupNumber: nextGroupNumber,
       members: memberIds,
-      round: currentRound
+      round: currentRound,
+      bracket: bracket
     });
 
     await newGroup.save();
@@ -50,30 +59,6 @@ router.post('/', ensureAdmin, async (req, res) => {
     res.status(500).json({ error: 'Server erfyror' });
   }
 });
-
-// Only gets current groups
-// router.get('/', async (req, res) => {
-//   try {
-//     // Fetch the Tournament document (e.g., 'red2024')
-//     const tournament = await Tournament.findOne({ name: 'red2024' });
-
-//     if (!tournament) {
-//       return res.status(404).json({ error: 'Tournament not found' });
-//     }
-
-//     const currentRound = tournament.currentRound;
-
-//     // Fetch groups where group.round matches the current round
-//     const groups = await Group.find({ round: currentRound })
-//       .populate('members')
-//       .exec();
-
-//     res.json(groups);
-//   } catch (err) {
-//     console.error('Error fetching groups:', err);
-//     res.status(500).json({ error: 'Server error' });
-//   }
-// });
 
 router.get('/', async (req, res) => {
   try {
@@ -100,7 +85,6 @@ router.get('/', async (req, res) => {
     res.status(500).json({ error: 'Server error' });
   }
 });
-
 
 router.get('/count', async (req, res) => {
   try {
