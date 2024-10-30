@@ -349,7 +349,6 @@ const getTopPicksByRound = async (roundField, limit = 5) => {
 
 const getFavoritePerGroup = async () => {
   try {
-    console.log("Starting aggregation to get favorites per group.");
 
     const favoritePerGroup = await Group.aggregate([
       // Step 1: Exclude 'Seeding' rounds
@@ -475,7 +474,6 @@ const getFavoritePerGroup = async () => {
       }
     ]);
 
-    console.log("Aggregation result:", JSON.stringify(favoritePerGroup, null, 2));
     return favoritePerGroup;
 
   } catch (error) {

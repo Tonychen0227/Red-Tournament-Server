@@ -87,10 +87,32 @@ router.post('/end-round', ensureAdmin, async (req, res) => {
       return res.status(400).json({ error: 'Not all races are completed for the current round' });
     }
 
-    await processRaceResults(races, currentRound);
+    if (currentRound === 'Round 3') {
+
+      // Custom logic for Round 3: Select Top 9 Racers
+      const { topNine, tiedRacers } = await selectTopNine();
+
+      // Update the tournament's current round to Semifinals
+      tournament.currentRound = 'Semifinals';
+      await tournament.save();
+
+      console.log(topNine);
+      console.log(tiedRacers);
+
+      return res.status(200).json({
+        message: 'Round 3 ended successfully. Transitioned to Semifinals.',
+        nextRound: 'Semifinals',
+        topNine,
+        tiedRacers,
+      });
+
+    } else {
+      await processRaceResults(races, currentRound);
+    }
 
     const nextRound = getNextRound(currentRound);
     tournament.currentRound = nextRound;
+
     await tournament.save();
 
     return res.status(200).json({ message: 'Round ended successfully', nextRound });
@@ -295,6 +317,37 @@ async function processRaceResults(races, currentRound) {
 
   // Wait for all updates to complete
   await Promise.all(userUpdates);
+}
+
+// Helper Function to Select Top Nine Racers
+async function selectTopNine() {
+  // Fetch all users with the role 'runner'
+  const racers = await User.find({ role: 'runner' }).sort({ points: -1, tieBreakerValue: -1 });
+
+  if (racers.length === 0) {
+    throw new Error('No racers found in the tournament.');
+  }
+
+  // Select the top 9 racers
+  let topNine = racers.slice(0, 9);
+  const ninthPlacePoints = topNine[8]?.points;
+
+  // Identify racers tied at the 9th position
+  const tiedRacers = racers.filter(racer => racer.points === ninthPlacePoints);
+
+  // If there are more than 9 racers due to ties, include all tied racers
+  if (tiedRacers.length > 1) {
+    // Exclude racers already in topNine to avoid duplication
+    const additionalTiedRacers = tiedRacers.filter(racer => !topNine.some(r => r._id.equals(racer._id)));
+
+    // Include all tied racers
+    topNine = racers.filter(racer => racer.points > ninthPlacePoints).concat(tiedRacers);
+  }
+
+  // Determine the list of tied racers at 9th position
+  const finalTiedRacers = topNine.filter(racer => racer.points === ninthPlacePoints);
+
+  return { topNine, tiedRacers: finalTiedRacers };
 }
 
 

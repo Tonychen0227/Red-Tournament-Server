@@ -88,21 +88,27 @@ async function getTopTimes() {
         const uniqueRacerIds = [...new Set(topBestTimes.map(result => result.racer.toString()))];
 
         // Step 7: Fetch display names for all unique racers
-        const racers = await User.find({ _id: { $in: uniqueRacerIds } }).select('displayName').exec();
+        const racers = await User.find({ _id: { $in: uniqueRacerIds } })
+        .select('displayName discordUsername')
+        .exec();
 
         // Step 8: Create a map of racer ID to displayName for quick lookup
         const racerMap = {};
         racers.forEach(racer => {
-            racerMap[racer._id.toString()] = racer.displayName;
+            racerMap[racer._id.toString()] = {
+                displayName: racer.displayName || 'Unknown',
+                discordUsername: racer.discordUsername || 'Unknown'
+            };
         });
-
+    
         // Step 9: Construct the final array with display names and formatted times
         const formattedTopBestTimes = topBestTimes.map(result => ({
             bestTime: result.totalTime,
-            racer: racerMap[result.racer.toString()] || 'Unknown'
+            racer: racerMap[result.racer.toString()] || { displayName: 'Unknown', discordUsername: 'Unknown' }
         }));
-
+    
         return formattedTopBestTimes;
+
     } catch (error) {
         console.error('Error in getTopBestTimes:', error);
         throw error; // Let the caller handle the error
