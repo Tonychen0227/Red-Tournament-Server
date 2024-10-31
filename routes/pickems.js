@@ -5,6 +5,7 @@ const mongoose = require('mongoose');
 
 const User = require('../models/User');
 const Group = require('../models/Group');
+const Race = require('../models/Race');
 const Pickems = require('../models/Pickems');
 const Tournament = require('../models/Tournament');
 
@@ -482,7 +483,6 @@ const getFavoritePerGroup = async () => {
   }
 };
 
-
 router.get('/stats/all', async (req, res) => {
   try {
     const topWinnersLimit = 5;
@@ -528,6 +528,116 @@ router.get('/stats/favorites', async (req, res) => {
   } catch (error) {
     console.error('Error fetching favorites:', error);
     res.status(500).send('Server Error');
+  }
+});
+
+// Admin routes
+router.get('/tournament/picks', async (req, res) => {
+  try {
+    // Fetch the fastest race time
+    const fastestRace = await Race.aggregate([
+      { $unwind: '$results' },
+      { $match: { 'results.status': 'Finished' } },
+      {
+        $addFields: {
+          'results.totalTime': {
+            $add: [
+              { $multiply: ['$results.finishTime.hours', 3600000] },
+              { $multiply: ['$results.finishTime.minutes', 60000] },
+              { $multiply: ['$results.finishTime.seconds', 1000] },
+              '$results.finishTime.milliseconds',
+            ],
+          },
+        },
+      },
+      { $sort: { 'results.totalTime': 1 } }, // Sort by total time in ascending order
+      { $limit: 1 }, // Get the fastest result
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'results.racer',
+          foreignField: '_id',
+          as: 'racerDetails',
+        },
+      },
+      { $unwind: '$racerDetails' },
+      {
+        $project: {
+          _id: 0,
+          racerId: '$results.racer',
+          racer: '$racerDetails.displayName',
+          discordUsername: '$racerDetails.discordUsername',
+          totalTime: '$results.totalTime',
+          raceDateTime: 1,
+        },
+      },
+    ]);
+
+    const fastestTimeRacerId = fastestRace[0]?.racerId;
+    const fastestTimeInMilliseconds = fastestRace[0]?.totalTime;
+
+    // Fetch only users with the role "runner" and adjust tiebreaker values as needed
+    let allUsers = await User.find({ role: 'runner' })
+      .select('displayName discordUsername points tieBreakerValue hasDNF currentBracket')
+      .lean();
+
+    // Adjust the tiebreaker value for users with hasDNF: true
+    allUsers = allUsers.map(user => {
+      if (user.hasDNF) {
+        user.tieBreakerValue = -1;
+      }
+      return user;
+    });
+
+    // Sort the adjusted users by points and tiebreaker value
+    const top9Users = allUsers
+      .sort((a, b) => {
+        if (b.points !== a.points) {
+          return b.points - a.points;
+        }
+        return b.tieBreakerValue - a.tieBreakerValue;
+      })
+      .slice(0, 9);
+
+    // Fetch all Pickems entries
+    const allPickems = await Pickems.find()
+      .populate('userId', 'displayName discordUsername')
+      .lean();
+
+    // Find users who picked the correct person for the fastest time
+    const correctFastestTimePickers = allPickems.filter(pickem => {
+      return pickem.bestTimeWho?.toString() === fastestTimeRacerId?.toString();
+    }).map(pickem => ({
+      displayName: pickem.userId.displayName,
+      discordUsername: pickem.userId.discordUsername,
+    }));
+
+    // Find the user who guessed the closest time
+    let closestTimeGuesser = null;
+    let closestTimeDifference = Infinity;
+
+    allPickems.forEach(pickem => {
+      const guessTime = pickem.closestTime;
+      const timeDifference = Math.abs(guessTime - fastestTimeInMilliseconds);
+
+      if (timeDifference < closestTimeDifference) {
+        closestTimeGuesser = {
+          displayName: pickem.userId.displayName,
+          discordUsername: pickem.userId.discordUsername,
+        };
+        closestTimeDifference = timeDifference;
+      }
+    });
+
+    res.status(200).json({
+      fastestRace: fastestRace[0] || null,
+      top9Users,
+      correctFastestTimePickers,
+      closestTimeGuesser,
+    });
+  } catch (error) {
+    console.error('Error fetching tournament picks:', error);
+    res.status(500).json({ message: 'Error fetching tournament picks.', error });
   }
 });
 
