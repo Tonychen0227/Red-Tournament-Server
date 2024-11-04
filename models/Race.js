@@ -7,6 +7,7 @@ const raceSchema = new mongoose.Schema({
   racer1: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   racer2: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   racer3: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  racer4: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
 
   raceDateTime: { type: Number, required: true }, // Unix timestamp
   raceSubmitted: { type: Number, required: true }, // Unix timestamp

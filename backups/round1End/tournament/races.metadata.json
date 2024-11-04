@@ -1,0 +1,1 @@
+{"indexes":[{"v":{"$numberInt":"2"},"key":{"_id":{"$numberInt":"1"}},"name":"_id_"},{"v":{"$numberInt":"2"},"key":{"raceTimeId":{"$numberInt":"1"}},"name":"raceTimeId_1","background":true,"unique":true,"sparse":true}],"uuid":"9015c114f8344df8870a164b25453a8f","collectionName":"races","type":"collection"}

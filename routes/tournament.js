@@ -10,7 +10,7 @@ const ensureAdmin = require('../middleware/ensureAdmin');
 router.get('/standings', async (req, res) => {
   try {
     const runners = await User.find({ role: 'runner' })
-      .select('discordUsername displayName points hasDNF tieBreakerValue currentBracket') // Selecting required fields
+      .select('discordUsername displayName points hasDNF tieBreakerValue secondaryTieBreakerValue currentBracket') // Selecting required fields
       .lean();
 
     const sortedRunners = runners
@@ -19,6 +19,7 @@ router.get('/standings', async (req, res) => {
         displayName: runner.displayName || runner.discordUsername,
         points: runner.points || 0,
         tieBreakerValue: runner.hasDNF ? -1 : (runner.tieBreakerValue || 0),
+        secondaryTieBreakerValue: runner.secondaryTieBreakerValue || 0,
         currentBracket: runner.currentBracket || 'Unknown'
       }))
       .sort((a, b) => b.points - a.points || b.tieBreakerValue - a.tieBreakerValue);
@@ -89,10 +90,8 @@ router.post('/end-round', ensureAdmin, async (req, res) => {
 
     if (currentRound === 'Round 3') {
 
-      // Custom logic for Round 3: Select Top 9 Racers
       const { topNine, tiedRacers } = await selectTopNine();
 
-      // Update the tournament's current round to Semifinals
       tournament.currentRound = 'Semifinals';
       await tournament.save();
 
@@ -104,6 +103,13 @@ router.post('/end-round', ensureAdmin, async (req, res) => {
         nextRound: 'Semifinals',
         topNine,
         tiedRacers,
+      });
+
+    } else if (currentRound === 'Semifinals') {
+
+      return res.status(200).json({
+        message: 'Semifinals ended successfully. Transitioned to Final.',
+        nextRound: 'Finals'
       });
 
     } else {
