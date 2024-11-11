@@ -55,11 +55,11 @@ router.get('/ready-to-complete', async (req, res) => {
 router.get('/completed', async (req, res) => {
     try {
         const races = await Race.find({ completed: true })
-            .populate('racer1', 'discordUsername displayName currentBracket')
-            .populate('racer2', 'discordUsername displayName currentBracket')
-            .populate('racer3', 'discordUsername displayName currentBracket')
+            .populate('racer1', 'discordUsername displayName currentBracket initialPot')
+            .populate('racer2', 'discordUsername displayName currentBracket initialPot')
+            .populate('racer3', 'discordUsername displayName currentBracket initialPot')
             .populate('commentators', 'discordUsername displayName')
-            .populate('results.racer', 'discordUsername displayName')
+            .populate('results.racer', 'discordUsername displayName initialPot')
             .populate('restreamer', 'discordUsername displayName')
             .sort({ raceDateTime: 1 }); // Sort by raceDateTime ascending
         

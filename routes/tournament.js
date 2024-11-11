@@ -19,7 +19,6 @@ router.get('/standings', async (req, res) => {
         displayName: runner.displayName || runner.discordUsername,
         points: runner.points || 0,
         tieBreakerValue: runner.hasDNF ? -1 : (runner.tieBreakerValue || 0),
-        secondaryTieBreakerValue: runner.secondaryTieBreakerValue || 0,
         currentBracket: runner.currentBracket || 'Unknown'
       }))
       .sort((a, b) => b.points - a.points || b.tieBreakerValue - a.tieBreakerValue);
@@ -63,7 +62,6 @@ router.get('/round', async (req, res) => {
   }
 });
 
-
 router.post('/end-round', ensureAdmin, async (req, res) => {
   try {
     const tournament = await Tournament.findOne({ name: 'red2024' });
@@ -94,9 +92,6 @@ router.post('/end-round', ensureAdmin, async (req, res) => {
 
       tournament.currentRound = 'Semifinals';
       await tournament.save();
-
-      console.log(topNine);
-      console.log(tiedRacers);
 
       return res.status(200).json({
         message: 'Round 3 ended successfully. Transitioned to Semifinals.',

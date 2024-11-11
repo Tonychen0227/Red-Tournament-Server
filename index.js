@@ -44,14 +44,14 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Connect to MongoDB (Development)
-// mongoose.connect(`mongodb+srv://liam:${MONGODB_PASSWORD}.7gth0.mongodb.net/?retryWrites=true&w=majority&appName=2024`, {
-//   dbName: 'tournament_test'
-// });
+mongoose.connect(`mongodb+srv://liam:${MONGODB_PASSWORD}.7gth0.mongodb.net/?retryWrites=true&w=majority&appName=2024`, {
+  dbName: 'tournament_test'
+});
 
 // Connect to MongoDB (Production)
-mongoose.connect(`mongodb+srv://liam:${MONGODB_PASSWORD}.7gth0.mongodb.net/?retryWrites=true&w=majority&appName=2024`, {
-  dbName: 'tournament'
-});
+// mongoose.connect(`mongodb+srv://liam:${MONGODB_PASSWORD}.7gth0.mongodb.net/?retryWrites=true&w=majority&appName=2024`, {
+//   dbName: 'tournament'
+// });
 
 const db = mongoose.connection;
 db.on('error', console.error.bind(console, 'connection error:'));
