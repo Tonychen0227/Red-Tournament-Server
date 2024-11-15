@@ -220,8 +220,8 @@ router.post('/:id/complete', ensureAdmin, async (req, res) => {
 
         race.round = tournament.currentRound;
 
-        // If the round is not "Seeding", update hasDNF for relevant users
-        if (race.round !== 'Seeding') {
+        // Only update score and hasDNF for relevant users during Swiss rounds
+        if (race.round !== 'Seeding' && race.round !== 'Semifinals' && race.round !== 'Final') {
             const dnfStatuses = ['DNF', 'DNS', 'DQ'];
 
             for (const result of results) {
