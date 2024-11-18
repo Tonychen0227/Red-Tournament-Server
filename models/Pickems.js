@@ -18,6 +18,8 @@ const pickemsSchema = new Schema({
 
   semiFinalsPicks: [{ type: Schema.Types.ObjectId, ref: 'User' }], // Array of user IDs (User references)
 
+  finalPick: { type: Schema.Types.ObjectId, ref: 'User' }, // User ID (User reference)
+
   points: { type: Number, default: 0 }, // Total points for this user
 
   top9PointsAwarded: { type: Boolean, default: false }

@@ -70,6 +70,7 @@ router.post('/submit-round-picks', ensureAuthenticated, async (req, res) => {
       'Round 2': 'round2Picks',
       'Round 3': 'round3Picks',
       'Semifinals': 'semiFinalsPicks',
+      'Final': 'finalPick',
     };
 
     if (!validRoundsMap[currentRound]) {
@@ -118,7 +119,8 @@ router.get('/', async (req, res) => {
     .populate('round1Picks', 'displayName')
     .populate('round2Picks', 'displayName')
     .populate('round3Picks', 'displayName')
-    .populate('semiFinalsPicks', 'displayName');
+    .populate('semiFinalsPicks', 'displayName')
+    .populate('finalPick', 'displayName');
 
     // Return the pickems object if it exists, otherwise null
     res.status(200).json(pickems || null);
@@ -164,6 +166,7 @@ router.get('/:userId', async (req, res) => {
           .populate('round2Picks', 'displayName discordUsername')
           .populate('round3Picks', 'displayName discordUsername')
           .populate('semiFinalsPicks', 'displayName discordUsername')
+          .populate('finalPick', 'displayName discordUsername')
           .populate('userId', 'username');
 
       if (!pickems) {
@@ -374,7 +377,7 @@ const getFavoritePerGroup = async () => {
                       { case: { $eq: ["$$currentRound", "Round 2"] }, then: "$round2Picks" },
                       { case: { $eq: ["$$currentRound", "Round 3"] }, then: "$round3Picks" },
                       { case: { $eq: ["$$currentRound", "Semifinals"] }, then: "$semiFinalsPicks" },
-                      { case: { $eq: ["$$currentRound", "Final"] }, then: "$finalPicks" }
+                      { case: { $eq: ["$$currentRound", "Final"] }, then: "$finalPick" }
                     ],
                     default: []
                   }
