@@ -102,9 +102,12 @@ router.post('/end-round', ensureAdmin, async (req, res) => {
 
     } else if (currentRound === 'Semifinals') {
 
+      tournament.currentRound = 'Final';
+      await tournament.save();
+
       return res.status(200).json({
         message: 'Semifinals ended successfully. Transitioned to Final.',
-        nextRound: 'Finals'
+        nextRound: 'Final'
       });
 
     } else {
