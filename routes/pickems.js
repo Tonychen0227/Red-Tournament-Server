@@ -11,20 +11,17 @@ const Tournament = require('../models/Tournament');
 
 const ensureAuthenticated = require('../middleware/ensureAuthenticated');
 
-// Submit one-off picks
 router.post('/submit-one-off', ensureAuthenticated, async (req, res) => {
   
   const { selectedRunners, selectedWinner, selectedBestTimeRunner, bestTime } = req.body;
 
   const userId = req.user._id;
 
-  // Calculate the closestTime in milliseconds from the bestTime object
   const closestTime =
     (bestTime.hours * 3600000) +
     (bestTime.minutes * 60000) +
     (bestTime.seconds * 1000) +
     bestTime.milliseconds;
-
 
   try {
     const pickems = await Pickems.findOne({ userId });
@@ -49,14 +46,12 @@ router.post('/submit-one-off', ensureAuthenticated, async (req, res) => {
   }
 });
 
-// Submit round picks
 router.post('/submit-round-picks', ensureAuthenticated, async (req, res) => {
   const { selectedWinners } = req.body;
   const userId = req.user._id;
 
   try {
-    // Fetch the active tournament
-    const tournament = await Tournament.findOne().sort({ _id: -1 }); // Adjust query if needed
+    const tournament = await Tournament.findOne().sort({ _id: -1 });
 
     if (!tournament) {
       return res.status(404).json({ message: 'No active tournament found.' });
@@ -64,7 +59,6 @@ router.post('/submit-round-picks', ensureAuthenticated, async (req, res) => {
 
     const currentRound = tournament.currentRound;
 
-    // Validate currentRound against the schema's enum
     const validRoundsMap = {
       'Round 1': 'round1Picks',
       'Round 2': 'round2Picks',
@@ -90,7 +84,6 @@ router.post('/submit-round-picks', ensureAuthenticated, async (req, res) => {
       return res.status(400).json({ message: `You have already submitted picks for ${currentRound}.` });
     }
 
-    // Validate selectedRunners array
     if (!Array.isArray(selectedWinners) || selectedWinners.length === 0) {
       return res.status(400).json({ message: 'Selected runners must be a non-empty array.' });
     }
@@ -111,9 +104,8 @@ router.get('/', async (req, res) => {
   try {
     const userId = req.user._id;
     
-    // Find the pickems and populate all user-related fields
     const pickems = await Pickems.findOne({ userId })
-    .populate('top9', 'displayName') // Populate top9 with displayName field
+    .populate('top9', 'displayName')
     .populate('overallWinner', 'displayName')
     .populate('bestTimeWho', 'displayName')
     .populate('round1Picks', 'displayName')
@@ -122,7 +114,6 @@ router.get('/', async (req, res) => {
     .populate('semiFinalsPicks', 'displayName')
     .populate('finalPick', 'displayName');
 
-    // Return the pickems object if it exists, otherwise null
     res.status(200).json(pickems || null);
   } catch (error) {
     console.error('Error fetching Pickems:', error);
@@ -135,16 +126,14 @@ router.get('/leaderboard', async (req, res) => {
   try {
     // Find all Pickems entries, sort by points in descending order, and populate the userId with username
     const pickemsList = await Pickems.find()
-      .populate('userId', 'displayName discordUsername') // Populate userId to get the displayName
-      .select('userId points') // Select only the points and userId fields
-      .sort({ points: -1 }); // Sort by points in descending order
+      .populate('userId', 'displayName discordUsername')
+      .select('userId points'
+      .sort({ points: -1 });
 
-    // If no Pickems entries found, return an empty array
     if (!pickemsList) {
       return res.status(404).json({ message: 'No Pickems entries found' });
     }
 
-    // Respond with the sorted array of Pickems entries
     res.status(200).json(pickemsList);
   } catch (error) {
     console.error('Error retrieving Pickems points:', error);
@@ -157,7 +146,6 @@ router.get('/:userId', async (req, res) => {
   const { userId } = req.params;
 
   try {
-      // Find the Pickems for the provided userId and populate user-related fields
       const pickems = await Pickems.findOne({ userId })
           .populate('top9', 'displayName discordUsername')
           .populate('overallWinner', 'displayName discordUsername')
@@ -263,39 +251,25 @@ const getTopBestTimePicks = async (limit = 5) => {
 
 const getTop9Picks = async () => {
   try {
-    // Perform aggregation on the Pickems collection
     const top9Picks = await Pickems.aggregate([
-      // Unwind the top9 array to handle each pick individually
       { $unwind: '$top9' },
-      
-      // Group by the top9 user ID and count the number of picks per user
-      {
+            {
         $group: {
           _id: '$top9',
           pickCount: { $sum: 1 },
         },
       },
-      
-      // Sort the users by pickCount in descending order
       { $sort: { pickCount: -1 } },
-      
-      // Limit the results to Top 9
       { $limit: 9 },
-      
-      // Lookup to populate user details from the users collection
-      {
+            {
         $lookup: {
-          from: 'users', // Ensure this matches your actual User collection name
+          from: 'users',
           localField: '_id',
           foreignField: '_id',
           as: 'user',
         },
       },
-      
-      // Unwind the user array to simplify the structure
       { $unwind: '$user' },
-      
-      // Project the necessary fields: userId, displayName, discordUsername, and pickCount
       {
         $project: {
           _id: 0,
@@ -311,10 +285,9 @@ const getTop9Picks = async () => {
     return top9Picks;
   } catch (error) {
     console.error('Error in getTop9Picks:', error);
-    throw error; // Propagate the error to be handled in the route
+    throw error;
   }
 };
-
 
 const getTopPicksByRound = async (roundField, limit = 5) => {
   const topPicks = await Pickems.aggregate([
@@ -355,13 +328,11 @@ const getFavoritePerGroup = async () => {
   try {
 
     const favoritePerGroup = await Group.aggregate([
-      // Step 1: Exclude 'Seeding' rounds
       {
         $match: {
           round: { $ne: "Seeding" } // Exclude 'Seeding' rounds
         }
       },
-      // Step 2: Lookup into Pickems based on group members and current round
       {
         $lookup: {
           from: "pickems",
@@ -392,7 +363,7 @@ const getFavoritePerGroup = async () => {
                 pickCount: { $sum: 1 }
               }
             },
-            // Step 3: Determine the maximum pickCount
+            // Determine the maximum pickCount
             {
               $group: {
                 _id: null,
@@ -400,7 +371,7 @@ const getFavoritePerGroup = async () => {
                 picks: { $push: { userId: "$_id", pickCount: "$pickCount" } }
               }
             },
-            // Step 4: Filter users with pickCount equal to maxPickCount
+            // Filter users with pickCount equal to maxPickCount
             {
               $project: {
                 picks: {
@@ -436,13 +407,12 @@ const getFavoritePerGroup = async () => {
           as: "favorite"
         }
       },
-      // Step 5: Exclude groups with no favorite
+      // Exclude groups with no favorite
       {
         $match: {
           favorite: { $ne: [] } // Ensure favorite exists
         }
       },
-      // Step 6: Project necessary fields
       {
         $project: {
           groupNumber: 1,
@@ -451,7 +421,7 @@ const getFavoritePerGroup = async () => {
           favorite: 1
         }
       },
-      // Step 7: Group by round and accumulate groups
+      // Group by round and accumulate groups
       {
         $group: {
           _id: "$round",
@@ -464,7 +434,7 @@ const getFavoritePerGroup = async () => {
           }
         }
       },
-      // Step 8: Rename _id to round for clarity
+      // Rename _id to round for clarity
       {
         $project: {
           _id: 0,
@@ -472,9 +442,8 @@ const getFavoritePerGroup = async () => {
           groups: 1
         }
       },
-      // Optional: Sort rounds if desired
       {
-        $sort: { round: 1 } // Adjust sorting as needed
+        $sort: { round: 1 }
       }
     ]);
 
@@ -492,7 +461,6 @@ router.get('/stats/all', async (req, res) => {
     const topBestTimeLimit = 5;
     const topPicksByRoundLimit = 5;
 
-    // Define the rounds corresponding to each race
     const rounds = ['round1Picks', 'round2Picks', 'round3Picks', 'semiFinalsPicks'];
 
     const topPicksByRound = {};
@@ -537,7 +505,6 @@ router.get('/stats/favorites', async (req, res) => {
 // Admin routes
 router.get('/tournament/picks', async (req, res) => {
   try {
-    // Fetch the fastest race time
     const fastestRace = await Race.aggregate([
       { $unwind: '$results' },
       { $match: { 'results.status': 'Finished' } },
@@ -553,8 +520,8 @@ router.get('/tournament/picks', async (req, res) => {
           },
         },
       },
-      { $sort: { 'results.totalTime': 1 } }, // Sort by total time in ascending order
-      { $limit: 1 }, // Get the fastest result
+      { $sort: { 'results.totalTime': 1 } },
+      { $limit: 1 },
       {
         $lookup: {
           from: 'users',
@@ -579,12 +546,10 @@ router.get('/tournament/picks', async (req, res) => {
     const fastestTimeRacerId = fastestRace[0]?.racerId;
     const fastestTimeInMilliseconds = fastestRace[0]?.totalTime;
 
-    // Fetch only users with the role "runner" and adjust tiebreaker values as needed
     let allUsers = await User.find({ role: 'runner' })
       .select('displayName discordUsername points tieBreakerValue hasDNF currentBracket')
       .lean();
 
-    // Adjust the tiebreaker value for users with hasDNF: true
     allUsers = allUsers.map(user => {
       if (user.hasDNF) {
         user.tieBreakerValue = -1;
@@ -592,7 +557,6 @@ router.get('/tournament/picks', async (req, res) => {
       return user;
     });
 
-    // Sort the adjusted users by points and tiebreaker value
     const top9Users = allUsers
       .sort((a, b) => {
         if (b.points !== a.points) {
@@ -602,12 +566,10 @@ router.get('/tournament/picks', async (req, res) => {
       })
       .slice(0, 9);
 
-    // Fetch all Pickems entries
     const allPickems = await Pickems.find()
       .populate('userId', 'displayName discordUsername')
       .lean();
 
-    // Find users who picked the correct person for the fastest time
     const correctFastestTimePickers = allPickems.filter(pickem => {
       return pickem.bestTimeWho?.toString() === fastestTimeRacerId?.toString();
     }).map(pickem => ({
@@ -615,7 +577,6 @@ router.get('/tournament/picks', async (req, res) => {
       discordUsername: pickem.userId.discordUsername,
     }));
 
-    // Find the user who guessed the closest time
     let closestTimeGuesser = null;
     let closestTimeDifference = Infinity;
 

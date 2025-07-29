@@ -34,8 +34,6 @@ router.post('/add-user', ensureAdmin, async (req, res) => {
 });
 
 router.post('/set-pots', ensureAdmin, async (req, res) => {
-
-
   const { userPots } = req.body; // Expecting an array of { userId, pot }
 
   if (!Array.isArray(userPots) || userPots.length === 0) {

@@ -106,39 +106,6 @@ router.get('/count', async (req, res) => {
   }
 });
 
-// router.get('/user/current', ensureRunner, async (req, res) => {
-//   try {
-//       const userId = req.user._id;
-
-//       // Find the user and populate the currentGroup
-//       const user = await User.findById(userId)
-//           .populate({
-//               path: 'currentGroup',
-//               populate: {
-//                   path: 'members',
-//                   select: 'discordUsername displayName initialPot role pronouns'
-//               }
-//           })
-//           .exec();
-
-//       if (!user) {
-//           return res.status(404).json({ error: 'User not found' });
-//       }
-
-//       if (!user.currentGroup) {
-//           return res.status(404).json({ error: 'You are not currently assigned to any group' });
-//       }
-
-//       res.json({
-//           groupNumber: user.currentGroup.groupNumber,
-//           members: user.currentGroup.members
-//       });
-//   } catch (err) {
-//       console.error('Error fetching user group:', err);
-//       res.status(500).json({ error: 'Server error' });
-//   }
-// });
-
 router.get('/user/current', ensureRunner, async (req, res) => {
   try {
     const userId = req.user._id;
@@ -172,6 +139,5 @@ router.get('/user/current', ensureRunner, async (req, res) => {
     res.status(500).json({ error: 'Server error' });
   }
 });
-
 
 module.exports = router;

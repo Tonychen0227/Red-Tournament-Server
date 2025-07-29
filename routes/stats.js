@@ -111,7 +111,7 @@ async function getTopTimes() {
 
     } catch (error) {
         console.error('Error in getTopBestTimes:', error);
-        throw error; // Let the caller handle the error
+        throw error;
     }
 }
 
@@ -213,18 +213,15 @@ async function getWinRate() {
 
         return {
             racer: userMap[racerId] || "Unknown",
-            winRate: parseFloat(winRate.toFixed(2)) // Store as number for accurate sorting
+            winRate: parseFloat(winRate.toFixed(2))
         };
     });
 
-    // Sort the winRates array in descending order by winRate
     winRates.sort((a, b) => b.winRate - a.winRate);
 
-    // Optionally, format the winRate to two decimal places as strings
-    // If you prefer to keep them as numbers, you can skip this step
     const formattedWinRates = winRates.map(entry => ({
         racer: entry.racer,
-        winRate: entry.winRate.toFixed(2) // Convert back to string with two decimals
+        winRate: entry.winRate.toFixed(2)
     }));
 
     return formattedWinRates;
@@ -236,7 +233,7 @@ async function getMostActiveCommentators() {
         { $unwind: "$commentators" },
         { $group: { _id: "$commentators", count: { $sum: 1 } } },
         { $sort: { count: -1 } },
-        { $limit: 10 }, // Top 10 active commentators
+        { $limit: 10 },
         {
             $lookup: {
                 from: 'users',
@@ -265,7 +262,6 @@ router.get('/', async (req, res) => {
         stats.topTimes = await getTopTimes();
         stats.averageTimePerRound = await getAverageTimePerRound();
         stats.averageTimePerBracket = await getAverageTimePerBracket();
-        // stats.winRate = await getWinRate();
         stats.mostActiveCommentators = await getMostActiveCommentators();
 
         res.json(stats);

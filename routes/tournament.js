@@ -10,7 +10,7 @@ const ensureAdmin = require('../middleware/ensureAdmin');
 router.get('/standings', async (req, res) => {
   try {
     const runners = await User.find({ role: 'runner' })
-      .select('discordUsername displayName points hasDNF tieBreakerValue secondaryTieBreakerValue currentBracket') // Selecting required fields
+      .select('discordUsername displayName points hasDNF tieBreakerValue secondaryTieBreakerValue currentBracket')
       .lean();
 
     const sortedRunners = runners
@@ -79,7 +79,6 @@ router.post('/end-round', ensureAdmin, async (req, res) => {
       .populate('racer3')
       .populate('winner');
 
-
     // Check if all races are completed
     const incompleteRaces = races.filter(race => !race.completed);
     if (incompleteRaces.length > 0) {
@@ -142,25 +141,20 @@ async function processRaceResults(races, currentRound) {
   const usersToUpdate = {};
 
   for (const race of races) {
-    // Collect all racers
     const racers = [race.racer1, race.racer2, race.racer3].filter(racer => racer);
 
-    // Create a mapping of racer IDs to their results
     const racerResultsMap = {};
     for (const result of race.results) {
       racerResultsMap[result.racer.toString()] = result;
     }
 
-    // Create an array of racer-result pairs
     const racerResultPairs = racers.map(racer => ({
       racer,
       result: racerResultsMap[racer._id.toString()],
     }));
 
-    // Define a status order for sorting
     const statusOrder = { 'Finished': 0, 'DNF': 1, 'DNS': 2, 'DQ': 3 };
 
-    // Sort the racerResultPairs
     racerResultPairs.sort((a, b) => {
       const aStatusOrder = statusOrder[a.result.status] ?? 4; // Default to 4 if status not recognized
       const bStatusOrder = statusOrder[b.result.status] ?? 4;
@@ -169,7 +163,6 @@ async function processRaceResults(races, currentRound) {
         return aStatusOrder - bStatusOrder;
       } else {
         if (a.result.status === 'Finished') {
-          // Compare finish times
           const aTime = (a.result.finishTime.hours || 0) * 3600000 +
                         (a.result.finishTime.minutes || 0) * 60000 +
                         (a.result.finishTime.seconds || 0) * 1000 +
@@ -180,7 +173,7 @@ async function processRaceResults(races, currentRound) {
                         (b.result.finishTime.seconds || 0) * 1000 +
                         (b.result.finishTime.milliseconds || 0);
 
-          return aTime - bTime; // Faster time ranks higher
+          return aTime - bTime;
         } else if (a.result.status === 'DNF' && b.result.status === 'DNF') {
 
           // Compare dnfOrder (lower dnfOrder means earlier DNF, thus worse placement)
@@ -195,7 +188,6 @@ async function processRaceResults(races, currentRound) {
       }
     });
 
-    // Assign placements
     const winnerPair = racerResultPairs[0];
     const winner = winnerPair.racer;
 
@@ -353,6 +345,5 @@ async function selectTopNine() {
 
   return { topNine, tiedRacers: finalTiedRacers };
 }
-
 
 module.exports = router;

@@ -15,14 +15,13 @@ const POINTS_PER_CORRECT_PICK = 5;
 
 router.get('/', async (req, res) => {
     try {
-        // Fetch all upcoming races (not completed) from the database, populating the racer details
-        const races = await Race.find({ completed: false }) // Filter to only get races that are not completed
+        const races = await Race.find({ completed: false })
         .populate('racer1', 'discordUsername displayName currentBracket initialPot')
         .populate('racer2', 'discordUsername displayName currentBracket initialPot')
         .populate('racer3', 'discordUsername displayName currentBracket initialPot')
         .populate('commentators', 'discordUsername displayName')
         .populate('restreamer', 'discordUsername displayName')
-        .sort({ raceDateTime: 1 }); // Sorting by raceDateTime ascending (upcoming races first)
+        .sort({ raceDateTime: 1 });
   
         res.status(200).json(races);
     } catch (err) {
@@ -33,11 +32,11 @@ router.get('/', async (req, res) => {
 
 router.get('/ready-to-complete', async (req, res) => {
     try {
-        // Fetch all races that are ready to be completed (date is past but not marked as completed)
-        const now = Math.floor(Date.now() / 1000); // Get current time as a Unix timestamp
+        const now = Math.floor(Date.now() / 1000);
+
         const races = await Race.find({ 
             completed: false, 
-            raceDateTime: { $lt: now } // Races that have passed but are not completed
+            raceDateTime: { $lt: now }
         })
             .populate('racer1', 'discordUsername displayName')
             .populate('racer2', 'discordUsername displayName')
@@ -64,11 +63,9 @@ router.get('/completed', async (req, res) => {
             .sort({ raceDateTime: 1 }); // Sort by raceDateTime ascending
         
         const rankedRaces = races.map(race => {
-            // Sort the race results directly in the results array
             race.results = race.results
                 .filter(result => result.status === 'Finished')
                 .sort((a, b) => {
-                    // Sort by hours, then minutes, then seconds, then milliseconds
                     if (a.finishTime.hours !== b.finishTime.hours) {
                         return a.finishTime.hours - b.finishTime.hours;
                     } else if (a.finishTime.minutes !== b.finishTime.minutes) {
@@ -82,7 +79,7 @@ router.get('/completed', async (req, res) => {
                 // Append non-finished results (DNF, DNS, DQ) after the finished ones
                 .concat(race.results.filter(result => result.status !== 'Finished'));
 
-            return race.toObject(); // Convert the race object back to a plain JavaScript object
+            return race.toObject();
         });
 
         res.status(200).json(rankedRaces);
@@ -94,7 +91,7 @@ router.get('/completed', async (req, res) => {
 
 router.post('/submit', ensureRunner, async (req, res) => {
     try {
-        const { raceDateTime, racer2, racer3 } = req.body;  // dateTime is expected to be a Unix timestamp
+        const { raceDateTime, racer2, racer3 } = req.body;
 
         const raceSubmitted = Math.floor(Date.now() / 1000);
 
@@ -138,17 +135,6 @@ router.post('/submit', ensureRunner, async (req, res) => {
             return res.status(400).json({ error: 'Racer1 does not belong to any group' });
         }
 
-        // // Check if a race already exists for this group and round
-        // TODO: Test and deploy this
-        // const existingRace = await Race.findOne({
-        //     round: tournament.currentRound,
-        //     'racer1': racer1._id,
-        // });
-
-        // if (existingRace) {
-        //     return res.status(400).json({ error: 'A race has already been submitted for this group in the current round.' });
-        // }
-
         const groupId = racer1.currentGroup;
 
         const group = await Group.findById(groupId);
@@ -186,11 +172,9 @@ router.post('/:id/complete', ensureAdmin, async (req, res) => {
         race.raceTimeId = raceTimeId;
         race.completed = true;
 
-        // Compute the winner
         const finishedResults = results.filter(result => result.status === 'Finished');
 
         if (finishedResults.length > 0) {
-            // Sort the finished results by finish time
             finishedResults.sort((a, b) => {
                 if (a.finishTime.hours !== b.finishTime.hours) {
                     return a.finishTime.hours - b.finishTime.hours;
@@ -203,24 +187,21 @@ router.post('/:id/complete', ensureAdmin, async (req, res) => {
                 }
             });
 
-            // The winner is the racer with the fastest finish time
             const winnerResult = finishedResults[0];
             race.winner = winnerResult.racer;
 
         } else {
-            // If no racers finished, set winner to null
             race.winner = null;
         }
 
-        // Fetch the current round from the Tournament collection
         const tournament = await Tournament.findOne({ name: 'red2024' });
+
         if (!tournament) {
             return res.status(404).json({ error: 'Tournament not found' });
         }
 
         race.round = tournament.currentRound;
 
-        // Only update score and hasDNF for relevant users during Swiss rounds
         if (race.round !== 'Seeding' && race.round !== 'Semifinals' && race.round !== 'Final') {
             const dnfStatuses = ['DNF', 'DNS', 'DQ'];
 
@@ -231,7 +212,6 @@ router.post('/:id/complete', ensureAdmin, async (req, res) => {
                 }
             }
 
-            // Find the User associated with the winner and add points
             const winner = await User.findById(race.winner);
             
             if (winner) {
@@ -246,7 +226,6 @@ router.post('/:id/complete', ensureAdmin, async (req, res) => {
         if (race.winner) {
             const round = race.round;
 
-            // Map round names to Pickems fields
             const validRoundsMap = {
                 'Round 1': 'round1Picks',
                 'Round 2': 'round2Picks',
@@ -296,21 +275,18 @@ router.post('/:id/commentator', async (req, res) => {
         const raceId = req.params.id;
         const userId = req.user._id;
 
-        // Fetch the race by ID
         const race = await Race.findById(raceId);
   
         if (!race) {
             return res.status(404).json({ message: 'Race not found' });
         }
 
-        // Check if the user is already a commentator
         const isAlreadyCommentator = race.commentators.some(commentatorId => commentatorId.equals(userId));
   
         if (isAlreadyCommentator) {
             return res.status(400).json({ message: 'You are already a commentator for this race' });
         }
   
-        // Check the round type
         const swissRounds = ['Seeding', 'Round 1', 'Round 2', 'Round 3'];
         const bracketRounds = ['Semifinals', 'Final'];
 
@@ -327,7 +303,6 @@ router.post('/:id/commentator', async (req, res) => {
         
         race.commentators.push(userId);
   
-        // Save the updated race
         await race.save();
   
         res.status(200).json({ message: 'You have been added as a commentator' });
@@ -342,24 +317,20 @@ router.post('/:id/remove-commentator', ensureAuthenticated, async (req, res) => 
         const raceId = req.params.id;
         const userId = req.user._id;
 
-        // Fetch the race by ID
         const race = await Race.findById(raceId);
 
         if (!race) {
             return res.status(404).json({ message: 'Race not found' });
         }
 
-        // Check if the user is in the commentators list
         const isCommentator = race.commentators.some(commentatorId => commentatorId.equals(userId));
 
         if (!isCommentator) {
             return res.status(400).json({ message: 'You are not a commentator for this race' });
         }
 
-        // Remove the user from the commentators array
         race.commentators = race.commentators.filter(commentatorId => !commentatorId.equals(userId));
 
-        // Save the updated race
         await race.save();
 
         res.status(200).json({ message: 'You have been removed as a commentator' });
@@ -369,12 +340,10 @@ router.post('/:id/remove-commentator', ensureAuthenticated, async (req, res) => 
     }
 });
 
-// Cancel a race
 router.post('/:id/cancel', ensureAdmin, async (req, res) => {
     try {
         const raceId = req.params.id;
 
-        // Find the race by ID
         const race = await Race.findById(raceId);
 
         if (!race) {
@@ -383,7 +352,6 @@ router.post('/:id/cancel', ensureAdmin, async (req, res) => {
 
         race.cancelled = true;
 
-        // Save the race
         await race.save();
 
         return res.status(200).json({ message: 'Race cancelled successfully' });
@@ -393,12 +361,10 @@ router.post('/:id/cancel', ensureAdmin, async (req, res) => {
     }
 });
 
-// Uncancel a race
 router.post('/:id/uncancel', ensureAdmin, async (req, res) => {
     try {
         const raceId = req.params.id;
 
-        // Find the race by ID
         const race = await Race.findById(raceId);
 
         if (!race) {
@@ -407,7 +373,6 @@ router.post('/:id/uncancel', ensureAdmin, async (req, res) => {
 
         race.cancelled = false;
 
-        // Save the race
         await race.save();
 
         return res.status(200).json({ message: 'Race uncancelled successfully' });
@@ -417,7 +382,6 @@ router.post('/:id/uncancel', ensureAdmin, async (req, res) => {
     }
 });
 
-// Get current user's races
 router.get('/user', async (req, res) => {
   try {
     const userId = req.user._id;
@@ -446,7 +410,6 @@ router.get('/user', async (req, res) => {
       .populate('commentators', 'discordUsername displayName')
       .sort({ raceDateTime: 1 });
 
-    // Send the response
     res.status(200).json({
       racesParticipatedIn,
       racesCommentated
@@ -457,12 +420,10 @@ router.get('/user', async (req, res) => {
   }
 });
 
-// Get races for a specific user by userId
 router.get('/user/:userId', async (req, res) => {
     const { userId } = req.params;
   
     try {
-      // Find all races where the user is a racer (racer1, racer2, or racer3)
       const racesParticipatedIn = await Race.find({
         $or: [
           { racer1: userId },
@@ -476,7 +437,6 @@ router.get('/user/:userId', async (req, res) => {
         .populate('commentators', 'discordUsername displayName')
         .sort({ raceDateTime: 1 });
   
-      // Find all races where the user is a commentator
       const racesCommentated = await Race.find({
         commentators: userId
       })
@@ -486,7 +446,6 @@ router.get('/user/:userId', async (req, res) => {
         .populate('commentators', 'discordUsername displayName')
         .sort({ raceDateTime: 1 });
   
-      // Send the response
       res.status(200).json({
         racesParticipatedIn,
         racesCommentated
@@ -502,7 +461,6 @@ router.get('/:id', async (req, res) => {
     try {
         const raceId = req.params.id;
 
-        // Fetch the race by its ObjectID, populating the racer details
         const race = await Race.findById(raceId)
             .populate('racer1', 'discordUsername displayName')
             .populate('racer2', 'discordUsername displayName')
@@ -515,7 +473,6 @@ router.get('/:id', async (req, res) => {
             return res.status(404).json({ error: 'Race not found' });
         }
 
-        // Send the race data back to the frontend
         res.status(200).json(race);
     } catch (err) {
         console.error('Error fetching race:', err);
