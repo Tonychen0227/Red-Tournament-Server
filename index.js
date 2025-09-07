@@ -29,13 +29,18 @@ const ensureApiKey = require('./middleware/ensureApiKey');
 
 const app = express();
 
-// Serve the Angular client
-app.use(express.static(path.join(__dirname, 'public')));
-
 // Use the CORS middleware
 app.use(cors({
-  origin: [process.env.FRONTEND_URL, 'https://speedrun.red', 'https://www.speedrun.red'],
+  origin: [
+    process.env.FRONTEND_URL, 
+    'https://speedrun.red', 
+    'https://www.speedrun.red',
+    'https://ca-frontendrt2025.purpleglacier-91c682cc.westus2.azurecontainerapps.io'
+  ],
   credentials: true, // Allow credentials (cookies, auth headers)
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  optionsSuccessStatus: 200 // For legacy browser support
   }
 ));
 
@@ -43,14 +48,15 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Connect to MongoDB (Development)
-// mongoose.connect(`mongodb+srv://liam:${MONGODB_PASSWORD}.7gth0.mongodb.net/?retryWrites=true&w=majority&appName=2024`, {
-//   dbName: 'tournament_test'
-// });
+// Connect to MongoDB - Dynamic connection based on environment
+const mongoUrl = process.env.MONGODB_CONNECTION_STRING 
+  ? process.env.MONGODB_CONNECTION_STRING
+  : process.env.NODE_ENV === 'production' 
+    ? `mongodb+srv://liam:${MONGODB_PASSWORD}.7gth0.mongodb.net/?retryWrites=true&w=majority&appName=2024`
+    : `mongodb://admin:${MONGODB_PASSWORD}@mongodb:27017/redtournament?authSource=admin`;
 
-// Connect to MongoDB (Production)
-mongoose.connect(`mongodb+srv://liam:${MONGODB_PASSWORD}.7gth0.mongodb.net/?retryWrites=true&w=majority&appName=2024`, {
-  dbName: 'tournament'
+mongoose.connect(mongoUrl, {
+  dbName: process.env.NODE_ENV === 'production' ? 'redtournament' : 'redtournament'
 });
 
 const db = mongoose.connection;
@@ -59,7 +65,7 @@ db.once('open', () => {
     console.log('Connected to MongoDB');
 });
 
-// Trust the Fly.io proxy
+// Trust the proxy (for Fly.io and Docker networks)
 app.set('trust proxy', 1);
 
 // Set up session middleware with connect-mongo
@@ -68,8 +74,8 @@ app.use(session({
   resave: false,
   saveUninitialized: false,
   store: MongoStore.create({
-    client: mongoose.connection.getClient(),
-    dbName: 'tournament',
+    mongoUrl: mongoUrl,
+    dbName: 'redtournament',
     collectionName: 'sessions'
   }),
   cookie: {
@@ -127,7 +133,8 @@ app.use('/api/groups', groupRoutes);
 app.use('/api/user', userRoutes);
 app.use('/api/stats', statsRoutes);
 app.use('/api/pickems', pickemsRoutes);
-app.use('/api', authRoutes);
+app.use('/', authRoutes);  // OAuth routes at root level
+app.use('/api', authRoutes);  // API routes under /api
 
 app.get('/api/runners', async (req, res) => {
   try {
@@ -158,9 +165,9 @@ app.get('/api/runners', async (req, res) => {
   }
 });
 
-// For all other routes, send the index.html file (Angular then handles the routing)
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+// Health check endpoint for Docker
+app.get('/health', (req, res) => {
+  res.status(200).json({ status: 'healthy', timestamp: new Date().toISOString() });
 });
 
 // Start the server

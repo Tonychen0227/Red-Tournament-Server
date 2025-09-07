@@ -127,7 +127,7 @@ router.get('/leaderboard', async (req, res) => {
     // Find all Pickems entries, sort by points in descending order, and populate the userId with username
     const pickemsList = await Pickems.find()
       .populate('userId', 'displayName discordUsername')
-      .select('userId points'
+      .select('userId points')
       .sort({ points: -1 });
 
     if (!pickemsList) {
