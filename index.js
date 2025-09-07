@@ -29,20 +29,71 @@ const ensureApiKey = require('./middleware/ensureApiKey');
 
 const app = express();
 
-// Use the CORS middleware
+// Define allowed origins
+const allowedOrigins = [
+  process.env.FRONTEND_URL,
+  'https://speedrun.red',
+  'https://www.speedrun.red',
+  'https://ca-frontendrt2025.purpleglacier-91c682cc.westus2.azurecontainerapps.io'
+].filter(Boolean); // Remove any undefined values
+
+// Use the CORS middleware with comprehensive configuration
 app.use(cors({
-  origin: [
-    process.env.FRONTEND_URL, 
-    'https://speedrun.red', 
-    'https://www.speedrun.red',
-    'https://ca-frontendrt2025.purpleglacier-91c682cc.westus2.azurecontainerapps.io'
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      console.log('Blocked by CORS:', origin);
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: [
+    'Content-Type', 
+    'Authorization', 
+    'X-Requested-With',
+    'Accept',
+    'Origin',
+    'Access-Control-Request-Method',
+    'Access-Control-Request-Headers'
   ],
-  credentials: true, // Allow credentials (cookies, auth headers)
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
-  optionsSuccessStatus: 200 // For legacy browser support
+  exposedHeaders: ['Set-Cookie'],
+  optionsSuccessStatus: 200,
+  preflightContinue: false
+}));
+
+// Additional CORS headers for extra compatibility
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  
+  // Debug logging
+  console.log(`Request from origin: ${origin}`);
+  console.log(`Method: ${req.method}`);
+  console.log(`FRONTEND_URL env var: ${process.env.FRONTEND_URL}`);
+  
+  // Only set headers if origin is allowed
+  if (origin && allowedOrigins.includes(origin)) {
+    console.log(`✅ Origin ${origin} is allowed`);
+    res.header('Access-Control-Allow-Origin', origin);
+    res.header('Access-Control-Allow-Credentials', 'true');
+  } else if (origin) {
+    console.log(`❌ Origin ${origin} is NOT allowed. Allowed origins:`, allowedOrigins);
   }
-));
+  
+  // Handle preflight requests
+  if (req.method === 'OPTIONS') {
+    res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS,PATCH');
+    res.header('Access-Control-Allow-Headers', 'Content-Type,Authorization,X-Requested-With,Accept,Origin,Access-Control-Request-Method,Access-Control-Request-Headers');
+    res.header('Access-Control-Max-Age', '86400'); // Cache preflight for 24 hours
+    return res.status(200).end();
+  }
+  
+  next();
+});
 
 // Make Express understand JSON and webforms
 app.use(express.json());
@@ -81,7 +132,7 @@ app.use(session({
   cookie: {
     secure: process.env.NODE_ENV === 'production',
     httpOnly: true,
-    sameSite: 'lax',
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // 'none' for cross-origin in production
     maxAge: 24 * 60 * 60 * 1000 
   }
 }));
