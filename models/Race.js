@@ -12,8 +12,8 @@ const raceSchema = new mongoose.Schema({
   raceDateTime: { type: Number, required: true }, // Unix timestamp
   raceSubmitted: { type: Number, required: true }, // Unix timestamp
 
-  round: { type: String, enum: ['Seeding', 'Round 1', 'Round 2', 'Round 3', 'Semifinals', 'Final'], required: true },
-  bracket: { type: String, enum: ['High', 'Middle', 'Low', "Seeding"] }, // null for seeding?
+  round: { type: String, enum: ['Round 1', 'Round 2', 'Round 3', 'Quarterfinals', 'Semifinals', 'Final'], required: true },
+  bracket: { type: String, enum: ['Normal', 'Ascension', 'Exhibition', 'Playoffs'] },
 
   commentators: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
 

@@ -17,35 +17,6 @@ function calculateTotalTime(finishTime) {
     );
 }
 
-async function getBestTime() {
-    const races = await Race.find({ completed: true });
-    let bestTime = null;
-    let bestRacer = null;
-
-    for (const race of races) {
-        for (const result of race.results) {
-            if (result.status !== 'Finished') continue;
-
-            const totalTime = calculateTotalTime(result.finishTime);
-
-            if (bestTime === null || totalTime < bestTime) {
-                bestTime = totalTime;
-                bestRacer = result.racer;
-            }
-        }
-    }
-
-    if (bestRacer) {
-        const bestRacerData = await User.findById(bestRacer).select('displayName').exec();
-        return { 
-            bestTime, 
-            racer: bestRacerData ? bestRacerData.displayName : "Unknown" 
-        };
-    } else {
-        return { bestTime: null, bestRacer: null };
-    }
-}
-
 async function getTopTimes() {
     try {
         // Step 1: Retrieve all completed races
@@ -169,64 +140,6 @@ async function getAverageTimePerBracket() {
 
     return averages;
 }
-
-async function getWinRate() {
-    // Aggregate wins
-    const wins = await Race.aggregate([
-        { $match: { winner: { $ne: null } } },
-        { $group: { _id: "$winner", wins: { $sum: 1 } } }
-    ]);
-
-    // Aggregate participation
-    const participation = await Race.aggregate([
-        { $unwind: "$results" },
-        { $match: { "results.status": "Finished" } }, // Only consider finished races
-        { $group: { _id: "$results.racer", races: { $sum: 1 } } }
-    ]);
-
-    // Merge wins and participation
-    const winMap = {};
-    wins.forEach(win => {
-        winMap[win._id.toString()] = win.wins;
-    });
-
-    const participationMap = {};
-    participation.forEach(part => {
-        participationMap[part._id.toString()] = part.races;
-    });
-
-    // Collect all unique racer IDs to fetch display names in bulk
-    const racerIds = Object.keys(participationMap);
-    const users = await User.find({ _id: { $in: racerIds } }).select('displayName').exec();
-
-    // Create a map of user IDs to display names for quick lookup
-    const userMap = {};
-    users.forEach(user => {
-        userMap[user._id.toString()] = user.displayName;
-    });
-
-    // Calculate win rates
-    const winRates = racerIds.map(racerId => {
-        const wins = winMap[racerId] || 0;
-        const races = participationMap[racerId];
-        const winRate = races > 0 ? (wins / races) * 100 : 0;
-
-        return {
-            racer: userMap[racerId] || "Unknown",
-            winRate: parseFloat(winRate.toFixed(2))
-        };
-    });
-
-    winRates.sort((a, b) => b.winRate - a.winRate);
-
-    const formattedWinRates = winRates.map(entry => ({
-        racer: entry.racer,
-        winRate: entry.winRate.toFixed(2)
-    }));
-
-    return formattedWinRates;
-}
-
 
 async function getMostActiveCommentators() {
     const commentators = await Race.aggregate([

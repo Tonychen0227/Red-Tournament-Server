@@ -63,6 +63,7 @@ router.post('/submit-round-picks', ensureAuthenticated, async (req, res) => {
       'Round 1': 'round1Picks',
       'Round 2': 'round2Picks',
       'Round 3': 'round3Picks',
+      'Quarterfinals': 'quarterFinalsPicks',
       'Semifinals': 'semiFinalsPicks',
       'Final': 'finalPick',
     };
@@ -105,12 +106,13 @@ router.get('/', async (req, res) => {
     const userId = req.user._id;
     
     const pickems = await Pickems.findOne({ userId })
-    .populate('top9', 'displayName')
+    .populate('top27', 'displayName')
     .populate('overallWinner', 'displayName')
     .populate('bestTimeWho', 'displayName')
     .populate('round1Picks', 'displayName')
     .populate('round2Picks', 'displayName')
     .populate('round3Picks', 'displayName')
+    .populate('quarterFinalsPicks', 'displayName')
     .populate('semiFinalsPicks', 'displayName')
     .populate('finalPick', 'displayName');
 
@@ -147,12 +149,13 @@ router.get('/:userId', async (req, res) => {
 
   try {
       const pickems = await Pickems.findOne({ userId })
-          .populate('top9', 'displayName discordUsername')
+          .populate('top27', 'displayName discordUsername')
           .populate('overallWinner', 'displayName discordUsername')
           .populate('bestTimeWho', 'displayName discordUsername')
           .populate('round1Picks', 'displayName discordUsername')
           .populate('round2Picks', 'displayName discordUsername')
           .populate('round3Picks', 'displayName discordUsername')
+          .populate('quarterFinals', 'displayName discordUsername')
           .populate('semiFinalsPicks', 'displayName discordUsername')
           .populate('finalPick', 'displayName discordUsername')
           .populate('userId', 'username');
@@ -249,18 +252,18 @@ const getTopBestTimePicks = async (limit = 5) => {
   return topBestTime;
 };
 
-const getTop9Picks = async () => {
+const getTop27Picks = async () => {
   try {
-    const top9Picks = await Pickems.aggregate([
-      { $unwind: '$top9' },
-            {
+    const top27Picks = await Pickems.aggregate([
+      { $unwind: '$top27' },
+      {
         $group: {
-          _id: '$top9',
+          _id: '$top27',
           pickCount: { $sum: 1 },
         },
       },
       { $sort: { pickCount: -1 } },
-      { $limit: 9 },
+      { $limit: 27 },
             {
         $lookup: {
           from: 'users',
@@ -282,9 +285,9 @@ const getTop9Picks = async () => {
       },
     ]);
 
-    return top9Picks;
+    return top27Picks;
   } catch (error) {
-    console.error('Error in getTop9Picks:', error);
+    console.error('Error in getTop27Picks:', error);
     throw error;
   }
 };
@@ -329,11 +332,6 @@ const getFavoritePerGroup = async () => {
 
     const favoritePerGroup = await Group.aggregate([
       {
-        $match: {
-          round: { $ne: "Seeding" } // Exclude 'Seeding' rounds
-        }
-      },
-      {
         $lookup: {
           from: "pickems",
           let: { groupMembers: "$members", currentRound: "$round" },
@@ -347,6 +345,7 @@ const getFavoritePerGroup = async () => {
                       { case: { $eq: ["$$currentRound", "Round 1"] }, then: "$round1Picks" },
                       { case: { $eq: ["$$currentRound", "Round 2"] }, then: "$round2Picks" },
                       { case: { $eq: ["$$currentRound", "Round 3"] }, then: "$round3Picks" },
+                      { case: { $eq: ["$$currentRound", "Quarterfinals"] }, then: "$quarterFinalsPicks" },
                       { case: { $eq: ["$$currentRound", "Semifinals"] }, then: "$semiFinalsPicks" },
                       { case: { $eq: ["$$currentRound", "Final"] }, then: "$finalPick" }
                     ],
@@ -461,7 +460,7 @@ router.get('/stats/all', async (req, res) => {
     const topBestTimeLimit = 5;
     const topPicksByRoundLimit = 5;
 
-    const rounds = ['round1Picks', 'round2Picks', 'round3Picks', 'semiFinalsPicks'];
+    const rounds = ['round1Picks', 'round2Picks', 'round3Picks', 'quarterFinalsPicks', 'semiFinalsPicks'];
 
     const topPicksByRound = {};
 
@@ -473,17 +472,17 @@ router.get('/stats/all', async (req, res) => {
     const [
       topOverallWinners,
       topBestTimePicks,
-      top9Picks,
+      top27Picks,
     ] = await Promise.all([
       getTopOverallWinners(topWinnersLimit),
       getTopBestTimePicks(topBestTimeLimit),
-      getTop9Picks(),
+      getTop27Picks(),
     ]);
 
     res.json({
       topOverallWinners,
       topBestTimePicks,
-      top9Picks,
+      top27Picks,
       topPicksByRound,
     });
   } catch (error) {
@@ -547,22 +546,19 @@ router.get('/tournament/picks', async (req, res) => {
     const fastestTimeInMilliseconds = fastestRace[0]?.totalTime;
 
     let allUsers = await User.find({ role: 'runner' })
-      .select('displayName discordUsername points tieBreakerValue hasDNF currentBracket')
+      .select('displayName discordUsername points bestTournamentTimeMilliseconds currentBracket')
       .lean();
 
     allUsers = allUsers.map(user => {
-      if (user.hasDNF) {
-        user.tieBreakerValue = -1;
-      }
       return user;
     });
 
-    const top9Users = allUsers
+    const top27Users = allUsers
       .sort((a, b) => {
         if (b.points !== a.points) {
           return b.points - a.points;
         }
-        return b.tieBreakerValue - a.tieBreakerValue;
+        return a.bestTournamentTimeMilliseconds - b.bestTournamentTimeMilliseconds;
       })
       .slice(0, 9);
 
@@ -595,7 +591,7 @@ router.get('/tournament/picks', async (req, res) => {
 
     res.status(200).json({
       fastestRace: fastestRace[0] || null,
-      top9Users,
+      top27Users,
       correctFastestTimePickers,
       closestTimeGuesser,
     });

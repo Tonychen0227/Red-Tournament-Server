@@ -13,7 +13,7 @@ router.post('/', ensureAdmin, async (req, res) => {
     const { pot1UserId, pot2UserId, pot3UserId } = req.body;
 
     // Fetch the current tournament
-    const tournament = await Tournament.findOne({ name: 'red2024' });
+    const tournament = await Tournament.findOne({ name: 'red2025' });
 
     if (!tournament) {
       return res.status(404).json({ error: 'Tournament not found' });
@@ -62,7 +62,7 @@ router.post('/', ensureAdmin, async (req, res) => {
 
 router.get('/', async (req, res) => {
   try {
-    const tournament = await Tournament.findOne({ name: 'red2024' });
+    const tournament = await Tournament.findOne({ name: 'red2025' });
 
     if (!tournament) {
       return res.status(404).json({ error: 'Tournament not found' });
@@ -89,7 +89,7 @@ router.get('/', async (req, res) => {
 router.get('/count', async (req, res) => {
   try {
     // Fetch the tournament to get the current round
-    const tournament = await Tournament.findOne({ name: 'red2024' });
+    const tournament = await Tournament.findOne({ name: 'red2025' });
     if (!tournament) {
       return res.status(404).json({ error: 'Tournament not found' });
     }
@@ -116,7 +116,7 @@ router.get('/user/current', ensureRunner, async (req, res) => {
         path: 'currentGroup',
         populate: {
           path: 'members',
-          select: 'discordUsername displayName initialPot role pronouns'
+          select: 'discordUsername displayName role pronouns'
         }
       })
       .exec();

@@ -33,31 +33,4 @@ router.post('/add-user', ensureAdmin, async (req, res) => {
   }
 });
 
-router.post('/set-pots', ensureAdmin, async (req, res) => {
-  const { userPots } = req.body; // Expecting an array of { userId, pot }
-
-  if (!Array.isArray(userPots) || userPots.length === 0) {
-    return res.status(400).json({ message: 'Invalid input data' });
-  }
-
-  try {
-    const bulkOps = userPots.map(({ userId, pot }) => ({
-      updateOne: {
-        filter: { _id: userId },
-        update: { initialPot: pot },
-      },
-    }));
-
-    const bulkWriteResult = await User.bulkWrite(bulkOps);
-
-    res.status(200).json({
-      message: 'Pots updated successfully',
-      result: bulkWriteResult,
-    });
-  } catch (err) {
-    console.error('Error updating pots:', err);
-    res.status(500).json({ message: 'Error updating pots', error: err.message });
-  }
-});
-
 module.exports = router;

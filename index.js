@@ -33,7 +33,9 @@ const app = express();
 const allowedOrigins = [
   process.env.FRONTEND_URL,
   'https://speedrun.red',
-  'https://www.speedrun.red',
+  'https://speedrun.red',
+  'https://redracetv.com',
+  'https://www.redracetv.com',
   'https://ca-frontendrt2025.purpleglacier-91c682cc.westus2.azurecontainerapps.io'
 ].filter(Boolean); // Remove any undefined values
 
@@ -196,7 +198,6 @@ app.get('/api/runners', async (req, res) => {
         $project: {
           displayName: 1,
           discordUsername: 1,
-          initialPot: 1,
           currentBracket: 1,
           displayNameLower: { $toLower: "$displayName" } // Create a field for case-insensitive sort
         }

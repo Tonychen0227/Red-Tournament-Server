@@ -16,9 +16,9 @@ const POINTS_PER_CORRECT_PICK = 5;
 router.get('/', async (req, res) => {
     try {
         const races = await Race.find({ completed: false })
-        .populate('racer1', 'discordUsername displayName currentBracket initialPot')
-        .populate('racer2', 'discordUsername displayName currentBracket initialPot')
-        .populate('racer3', 'discordUsername displayName currentBracket initialPot')
+        .populate('racer1', 'discordUsername displayName currentBracket')
+        .populate('racer2', 'discordUsername displayName currentBracket')
+        .populate('racer3', 'discordUsername displayName currentBracket')
         .populate('commentators', 'discordUsername displayName')
         .populate('restreamer', 'discordUsername displayName')
         .sort({ raceDateTime: 1 });
@@ -54,11 +54,11 @@ router.get('/ready-to-complete', async (req, res) => {
 router.get('/completed', async (req, res) => {
     try {
         const races = await Race.find({ completed: true })
-            .populate('racer1', 'discordUsername displayName currentBracket initialPot')
-            .populate('racer2', 'discordUsername displayName currentBracket initialPot')
-            .populate('racer3', 'discordUsername displayName currentBracket initialPot')
+            .populate('racer1', 'discordUsername displayName currentBracket')
+            .populate('racer2', 'discordUsername displayName currentBracket')
+            .populate('racer3', 'discordUsername displayName currentBracket')
             .populate('commentators', 'discordUsername displayName')
-            .populate('results.racer', 'discordUsername displayName initialPot')
+            .populate('results.racer', 'discordUsername displayName')
             .populate('restreamer', 'discordUsername displayName')
             .sort({ raceDateTime: 1 }); // Sort by raceDateTime ascending
         
@@ -105,7 +105,7 @@ router.post('/submit', ensureRunner, async (req, res) => {
         };
 
         // Fetch the tournament
-        const tournament = await Tournament.findOne({ name: 'red2024' });
+        const tournament = await Tournament.findOne({ name: 'red2025' });
 
         if (!tournament) {
         return res.status(404).json({ error: 'Tournament not found' });
@@ -114,22 +114,18 @@ router.post('/submit', ensureRunner, async (req, res) => {
         raceData.round = tournament.currentRound;
 
         // If the round is not 'Seeding', pull the bracket from racer1
-        if (tournament.currentRound !== 'Seeding') {
-            const racer1 = await User.findById(req.user._id).select('currentBracket');
+        let racer1 = await User.findById(req.user._id).select('currentBracket');
 
-            if (!racer1 || !racer1.currentBracket) {
-                return res.status(400).json({ error: 'Unable to get bracket' });
-            }
-            raceData.bracket = racer1.currentBracket;
-        } else {
-            raceData.bracket = 'Seeding';
+        if (!racer1 || !racer1.currentBracket) {
+            return res.status(400).json({ error: 'Unable to get bracket' });
         }
+        raceData.bracket = racer1.currentBracket;
 
         // Create a new race entry in the database
         const newRace = await Race.create(raceData);
 
          // Add the race start time to the group
-        const racer1 = await User.findById(req.user._id).select('currentGroup');
+        racer1 = await User.findById(req.user._id).select('currentGroup');
 
         if (!racer1 || !racer1.currentGroup) {
             return res.status(400).json({ error: 'Racer1 does not belong to any group' });
@@ -194,7 +190,7 @@ router.post('/:id/complete', ensureAdmin, async (req, res) => {
             race.winner = null;
         }
 
-        const tournament = await Tournament.findOne({ name: 'red2024' });
+        const tournament = await Tournament.findOne({ name: 'red2025' });
 
         if (!tournament) {
             return res.status(404).json({ error: 'Tournament not found' });
@@ -202,16 +198,7 @@ router.post('/:id/complete', ensureAdmin, async (req, res) => {
 
         race.round = tournament.currentRound;
 
-        if (race.round !== 'Seeding' && race.round !== 'Semifinals' && race.round !== 'Final') {
-            const dnfStatuses = ['DNF', 'DNS', 'DQ'];
-
-            for (const result of results) {
-                if (dnfStatuses.includes(result.status)) {
-                    // Find the user by their racer ID and update hasDNF to true
-                    await User.findByIdAndUpdate(result.racer, { hasDNF: true });
-                }
-            }
-
+        if (race.round !== 'Semifinals' && race.round !== 'Final') {
             const winner = await User.findById(race.winner);
             
             if (winner) {
@@ -230,6 +217,7 @@ router.post('/:id/complete', ensureAdmin, async (req, res) => {
                 'Round 1': 'round1Picks',
                 'Round 2': 'round2Picks',
                 'Round 3': 'round3Picks',
+                'Quarterfinals': 'quarterFinalsPicks',
                 'Semifinals': 'semiFinalsPicks',
             };
 
@@ -287,7 +275,7 @@ router.post('/:id/commentator', async (req, res) => {
             return res.status(400).json({ message: 'You are already a commentator for this race' });
         }
   
-        const swissRounds = ['Seeding', 'Round 1', 'Round 2', 'Round 3'];
+        const swissRounds = ['Round 1', 'Round 2', 'Round 3', 'Quarterfinals'];
         const bracketRounds = ['Semifinals', 'Final'];
 
         if (swissRounds.includes(race.round)) {
