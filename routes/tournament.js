@@ -19,7 +19,7 @@ router.get('/standings', async (req, res) => {
         displayName: runner.displayName || runner.discordUsername,
         points: runner.points || 0,
         bestTournamentTimeMilliseconds: runner.bestTournamentTimeMilliseconds || 9000000,
-        currentBracket: runner.currentBracket || 'Unknown'
+        currentBracket: runner.currentBracket || 'Normal'
       }))
       .sort((a, b) => b.points - a.points || a.bestTournamentTimeMilliseconds - b.bestTournamentTimeMilliseconds);
 
@@ -250,6 +250,12 @@ async function processRaceResults(races, currentRound) {
 
     if (currentBracket === 'Exhibition') {
       // do nothing as exhibition has no effects on bracket
+      winner.currentBracket = 'Playoffs';
+      last.currentBracket = 'Playoffs'
+
+      if (middle) {
+        middle.currentBracket = 'Playoffs'
+      }
     } else if (currentBracket === 'Normal') {
       let gain;
       

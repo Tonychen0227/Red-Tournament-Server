@@ -113,7 +113,6 @@ router.post('/submit', ensureRunner, async (req, res) => {
 
         raceData.round = tournament.currentRound;
 
-        // If the round is not 'Seeding', pull the bracket from racer1
         let racer1 = await User.findById(req.user._id).select('currentBracket');
 
         if (!racer1 || !racer1.currentBracket) {
@@ -275,8 +274,8 @@ router.post('/:id/commentator', async (req, res) => {
             return res.status(400).json({ message: 'You are already a commentator for this race' });
         }
   
-        const swissRounds = ['Round 1', 'Round 2', 'Round 3', 'Quarterfinals'];
-        const bracketRounds = ['Semifinals', 'Final'];
+        const swissRounds = ['Round 1', 'Round 2', 'Round 3'];
+        const bracketRounds = ['Quarterfinals', 'Semifinals', 'Final'];
 
         if (swissRounds.includes(race.round)) {
         // If the round is in the Swiss phase, limit to 2 commentators
