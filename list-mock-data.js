@@ -55,19 +55,24 @@ async function seedDatabase() {
 
     await Promise.all([
       User.find({}).then(function (users) {
+        console.log("USERS");
         console.log(users);
       }),
-      Tournament.find({}).then(function (users) {
-        console.log(users);
+      Tournament.find({}).then(function (tourn) {
+        console.log("TOURNAMENT");
+        console.log(tourn);
       }),
-      Race.find({}).then(function (users) {
-        console.log(users);
+      Race.find({}).then(function (races) {
+        console.log("RACE");
+        console.log(races);
       }),
-      Group.find({}).then(function (users) {
-        console.log(users);
+      Group.find({}).then(function (group) {
+        console.log("GROUP");
+        console.log(group);
       }),
-      Pickems.find({}).then(function (users) {
-        console.log(users);
+      Pickems.find({}).then(function (pickems) {
+        console.log("Pickems");
+        console.log(pickems);
       }),
     ]);
   } catch (error) {

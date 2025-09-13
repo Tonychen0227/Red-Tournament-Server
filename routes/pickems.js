@@ -13,7 +13,7 @@ const ensureAuthenticated = require('../middleware/ensureAuthenticated');
 
 router.post('/submit-one-off', ensureAuthenticated, async (req, res) => {
   
-  const { selectedRunners, selectedWinner, selectedBestTimeRunner, bestTime } = req.body;
+  const { selectedRunners, ultraSelectedRunners, selectedWinner, selectedBestTimeRunner, bestTime } = req.body;
 
   const userId = req.user._id;
 
@@ -33,6 +33,7 @@ router.post('/submit-one-off', ensureAuthenticated, async (req, res) => {
     const newPickems = new Pickems({
       userId,
       top27: selectedRunners.map(runner => runner._id),
+      top9: ultraSelectedRunners.map(runner => runner._id),
       overallWinner: selectedWinner._id,
       bestTimeWho: selectedBestTimeRunner._id,
       closestTime
@@ -107,6 +108,7 @@ router.get('/', async (req, res) => {
     
     const pickems = await Pickems.findOne({ userId })
     .populate('top27', 'displayName')
+    .populate('top9', 'displayName')
     .populate('overallWinner', 'displayName')
     .populate('bestTimeWho', 'displayName')
     .populate('round1Picks', 'displayName')
@@ -150,12 +152,13 @@ router.get('/:userId', async (req, res) => {
   try {
       const pickems = await Pickems.findOne({ userId })
           .populate('top27', 'displayName discordUsername')
+          .populate('top9', 'displayName discordUsername')
           .populate('overallWinner', 'displayName discordUsername')
           .populate('bestTimeWho', 'displayName discordUsername')
           .populate('round1Picks', 'displayName discordUsername')
           .populate('round2Picks', 'displayName discordUsername')
           .populate('round3Picks', 'displayName discordUsername')
-          .populate('quarterFinals', 'displayName discordUsername')
+          .populate('quarterFinalsPicks', 'displayName discordUsername')
           .populate('semiFinalsPicks', 'displayName discordUsername')
           .populate('finalPick', 'displayName discordUsername')
           .populate('userId', 'username');
@@ -288,6 +291,46 @@ const getTop27Picks = async () => {
     return top27Picks;
   } catch (error) {
     console.error('Error in getTop27Picks:', error);
+    throw error;
+  }
+};
+
+const getTop9Picks = async () => {
+  try {
+    const top9Picks = await Pickems.aggregate([
+      { $unwind: '$top9' },
+      {
+        $group: {
+          _id: '$top9',
+          pickCount: { $sum: 1 },
+        },
+      },
+      { $sort: { pickCount: -1 } },
+      { $limit: 9 },
+            {
+        $lookup: {
+          from: 'users',
+          localField: '_id',
+          foreignField: '_id',
+          as: 'user',
+        },
+      },
+      { $unwind: '$user' },
+      {
+        $project: {
+          _id: 0,
+          userId: '$_id',
+          displayName: '$user.displayName',
+          discordUsername: '$user.discordUsername',
+          currentBracket: '$user.currentBracket',
+          pickCount: 1,
+        },
+      },
+    ]);
+
+    return top9Picks;
+  } catch (error) {
+    console.error('Error in getTop9Picks:', error);
     throw error;
   }
 };
@@ -473,16 +516,19 @@ router.get('/stats/all', async (req, res) => {
       topOverallWinners,
       topBestTimePicks,
       top27Picks,
+      top9Picks,
     ] = await Promise.all([
       getTopOverallWinners(topWinnersLimit),
       getTopBestTimePicks(topBestTimeLimit),
       getTop27Picks(),
+      getTop9Picks(),
     ]);
 
     res.json({
       topOverallWinners,
       topBestTimePicks,
       top27Picks,
+      top9Picks,
       topPicksByRound,
     });
   } catch (error) {
