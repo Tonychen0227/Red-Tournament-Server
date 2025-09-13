@@ -25,45 +25,53 @@ const mongoUrl = process.env.NODE_ENV === 'production'
 // Mock data arrays
 const mockUsers = [
   // Runners - Playoffs bracket (top tier)
-  { discordUsername: 'speedrunner1', displayName: 'Lightning Fast', role: 'runner', pronouns: 'he/him', currentBracket: 'Playoffs', points: 85, bestTournamentTimeMilliseconds: 9000000 }, // 2h 30m
-  { discordUsername: 'pokemonmaster99', displayName: 'Pokemon Master', role: 'runner', pronouns: 'she/her', currentBracket: 'Playoffs', points: 82, bestTournamentTimeMilliseconds: 9180000 }, // 2h 33m
-  { discordUsername: 'redversion_pro', displayName: 'Red Version Pro', role: 'runner', pronouns: 'they/them', currentBracket: 'Playoffs', points: 78, bestTournamentTimeMilliseconds: 9360000 }, // 2h 36m
-  { discordUsername: 'elite4champion', displayName: 'Elite4 Champion', role: 'runner', pronouns: 'he/him', currentBracket: 'Playoffs', points: 75, bestTournamentTimeMilliseconds: 9540000 }, // 2h 39m
-  { discordUsername: 'pikachupower', displayName: 'Pikachu Power', role: 'runner', pronouns: 'she/her', currentBracket: 'Playoffs', points: 73, bestTournamentTimeMilliseconds: 9720000 }, // 2h 42m
-  
-  // Normal bracket (mid tier)
-  { discordUsername: 'gymleader_brock', displayName: 'Gym Leader Brock', role: 'runner', pronouns: 'he/him', currentBracket: 'Normal', points: 68, bestTournamentTimeMilliseconds: 9900000 }, // 2h 45m
-  { discordUsername: 'misty_water', displayName: 'Misty Water', role: 'runner', pronouns: 'she/her', currentBracket: 'Normal', points: 65, bestTournamentTimeMilliseconds: 10080000 }, // 2h 48m
-  { discordUsername: 'lt_surge_electric', displayName: 'Lt. Surge Electric', role: 'runner', pronouns: 'he/him', currentBracket: 'Normal', points: 62, bestTournamentTimeMilliseconds: 10260000 }, // 2h 51m
-  { discordUsername: 'erika_grass', displayName: 'Erika Grass', role: 'runner', pronouns: 'she/her', currentBracket: 'Normal', points: 60, bestTournamentTimeMilliseconds: 10440000 }, // 2h 54m
-  { discordUsername: 'koga_poison', displayName: 'Koga Poison', role: 'runner', pronouns: 'he/him', currentBracket: 'Normal', points: 58, bestTournamentTimeMilliseconds: 10620000 }, // 2h 57m
-  
-  // Ascension bracket (lower tier)
-  { discordUsername: 'sabrina_psychic', displayName: 'Sabrina Psychic', role: 'runner', pronouns: 'she/her', currentBracket: 'Ascension', points: 55, bestTournamentTimeMilliseconds: 10800000 }, // 3h 00m
-  { discordUsername: 'blaine_fire', displayName: 'Blaine Fire', role: 'runner', pronouns: 'he/him', currentBracket: 'Ascension', points: 52, bestTournamentTimeMilliseconds: 10980000 }, // 3h 03m
-  { discordUsername: 'giovanni_ground', displayName: 'Giovanni Ground', role: 'runner', pronouns: 'he/him', currentBracket: 'Ascension', points: 48, bestTournamentTimeMilliseconds: 11160000 }, // 3h 06m
-  { discordUsername: 'team_rocket_member', displayName: 'Team Rocket Member', role: 'runner', pronouns: 'they/them', currentBracket: 'Ascension', points: 45, bestTournamentTimeMilliseconds: 11340000 }, // 3h 09m
-  { discordUsername: 'youngster_joey', displayName: 'Youngster Joey', role: 'runner', pronouns: 'he/him', currentBracket: 'Ascension', points: 42, bestTournamentTimeMilliseconds: 11520000 }, // 3h 12m
-  { discordUsername: 'bug_catcher_sam', displayName: 'Bug Catcher Sam', role: 'runner', pronouns: 'he/him', currentBracket: 'Ascension', points: 38, bestTournamentTimeMilliseconds: 11700000 }, // 3h 15m
-  { discordUsername: 'lass_dana', displayName: 'Lass Dana', role: 'runner', pronouns: 'she/her', currentBracket: 'Ascension', points: 35, bestTournamentTimeMilliseconds: 11880000 }, // 3h 18m
-  { discordUsername: 'fisherman_ned', displayName: 'Fisherman Ned', role: 'runner', pronouns: 'he/him', currentBracket: 'Ascension', points: 32, bestTournamentTimeMilliseconds: 12060000 }, // 3h 21m
-  
-  // Exhibition bracket (fun/special events)
-  { discordUsername: 'veteran_trainer', displayName: 'Veteran Trainer', role: 'runner', pronouns: 'he/him', currentBracket: 'Exhibition', points: 28, bestTournamentTimeMilliseconds: 12240000 }, // 3h 24m
-  { discordUsername: 'cooltrainer_anna', displayName: 'Cooltrainer Anna', role: 'runner', pronouns: 'she/her', currentBracket: 'Exhibition', points: 25, bestTournamentTimeMilliseconds: 12420000 }, // 3h 27m
-  { discordUsername: 'hiker_anthony', displayName: 'Hiker Anthony', role: 'runner', pronouns: 'he/him', currentBracket: 'Exhibition', points: 22, bestTournamentTimeMilliseconds: 12600000 }, // 3h 30m
-  { discordUsername: 'beauty_bridget', displayName: 'Beauty Bridget', role: 'runner', pronouns: 'she/her', currentBracket: 'Exhibition', points: 20, bestTournamentTimeMilliseconds: 12780000 }, // 3h 33m
-  { discordUsername: 'sailor_dwayne', displayName: 'Sailor Dwayne', role: 'runner', pronouns: 'he/him', currentBracket: 'Exhibition', points: 18, bestTournamentTimeMilliseconds: 12960000 }, // 3h 36m
-  { discordUsername: 'gentleman_tucker', displayName: 'Gentleman Tucker', role: 'runner', pronouns: 'he/him', currentBracket: 'Exhibition', points: 15, bestTournamentTimeMilliseconds: 13140000 }, // 3h 39m
-  { discordUsername: 'super_nerd_miguel', displayName: 'Super Nerd Miguel', role: 'runner', pronouns: 'they/them', currentBracket: 'Exhibition', points: 12, bestTournamentTimeMilliseconds: 13320000 }, // 3h 42m
-  { discordUsername: 'rocker_luca', displayName: 'Rocker Luca', role: 'runner', pronouns: 'he/him', currentBracket: 'Exhibition', points: 10, bestTournamentTimeMilliseconds: 13500000 }, // 3h 45m
-  { discordUsername: 'juggler_kirk', displayName: 'Juggler Kirk', role: 'runner', pronouns: 'he/him', currentBracket: 'Exhibition', points: 8, bestTournamentTimeMilliseconds: 13680000 }, // 3h 48m
+  { discordUsername: 'speedrunner1', displayName: 'speedrunner1', role: 'runner', pronouns: 'he/him', currentBracket: 'Normal', points: 0, bestTournamentTimeMilliseconds: 9000000 },
+  { discordUsername: 'speedrunner2', displayName: 'speedrunner2', role: 'runner', pronouns: 'he/him', currentBracket: 'Normal', points: 0, bestTournamentTimeMilliseconds: 9000000 },
+  { discordUsername: 'speedrunner3', displayName: 'speedrunner3', role: 'runner', pronouns: 'he/him', currentBracket: 'Normal', points: 0, bestTournamentTimeMilliseconds: 9000000 },
+  { discordUsername: 'speedrunner4', displayName: 'speedrunner4', role: 'runner', pronouns: 'he/him', currentBracket: 'Normal', points: 0, bestTournamentTimeMilliseconds: 9000000 },
+  { discordUsername: 'speedrunner5', displayName: 'speedrunner5', role: 'runner', pronouns: 'he/him', currentBracket: 'Normal', points: 0, bestTournamentTimeMilliseconds: 9000000 },
+  { discordUsername: 'speedrunner6', displayName: 'speedrunner6', role: 'runner', pronouns: 'he/him', currentBracket: 'Normal', points: 0, bestTournamentTimeMilliseconds: 9000000 },
+  { discordUsername: 'speedrunner7', displayName: 'speedrunner7', role: 'runner', pronouns: 'he/him', currentBracket: 'Normal', points: 0, bestTournamentTimeMilliseconds: 9000000 },
+  { discordUsername: 'speedrunner8', displayName: 'speedrunner8', role: 'runner', pronouns: 'he/him', currentBracket: 'Normal', points: 0, bestTournamentTimeMilliseconds: 9000000 },
+  { discordUsername: 'speedrunner9', displayName: 'speedrunner9', role: 'runner', pronouns: 'he/him', currentBracket: 'Normal', points: 0, bestTournamentTimeMilliseconds: 9000000 },
+  { discordUsername: 'speedrunner10', displayName: 'speedrunner10', role: 'runner', pronouns: 'he/him', currentBracket: 'Normal', points: 0, bestTournamentTimeMilliseconds: 9000000 },
+  { discordUsername: 'speedrunner11', displayName: 'speedrunner11', role: 'runner', pronouns: 'he/him', currentBracket: 'Normal', points: 0, bestTournamentTimeMilliseconds: 9000000 },
+  { discordUsername: 'speedrunner12', displayName: 'speedrunner12', role: 'runner', pronouns: 'he/him', currentBracket: 'Normal', points: 0, bestTournamentTimeMilliseconds: 9000000 },
+  { discordUsername: 'speedrunner13', displayName: 'speedrunner13', role: 'runner', pronouns: 'he/him', currentBracket: 'Normal', points: 0, bestTournamentTimeMilliseconds: 9000000 },
+  { discordUsername: 'speedrunner14', displayName: 'speedrunner14', role: 'runner', pronouns: 'he/him', currentBracket: 'Normal', points: 0, bestTournamentTimeMilliseconds: 9000000 },
+  { discordUsername: 'speedrunner15', displayName: 'speedrunner15', role: 'runner', pronouns: 'he/him', currentBracket: 'Normal', points: 0, bestTournamentTimeMilliseconds: 9000000 },
+  { discordUsername: 'speedrunner16', displayName: 'speedrunner16', role: 'runner', pronouns: 'he/him', currentBracket: 'Normal', points: 0, bestTournamentTimeMilliseconds: 9000000 },
+  { discordUsername: 'speedrunner17', displayName: 'speedrunner17', role: 'runner', pronouns: 'he/him', currentBracket: 'Normal', points: 0, bestTournamentTimeMilliseconds: 9000000 },
+  { discordUsername: 'speedrunner18', displayName: 'speedrunner18', role: 'runner', pronouns: 'he/him', currentBracket: 'Normal', points: 0, bestTournamentTimeMilliseconds: 9000000 },
+  { discordUsername: 'speedrunner19', displayName: 'speedrunner19', role: 'runner', pronouns: 'he/him', currentBracket: 'Normal', points: 0, bestTournamentTimeMilliseconds: 9000000 },
+  { discordUsername: 'speedrunner20', displayName: 'speedrunner20', role: 'runner', pronouns: 'he/him', currentBracket: 'Normal', points: 0, bestTournamentTimeMilliseconds: 9000000 },
+  { discordUsername: 'speedrunner21', displayName: 'speedrunner21', role: 'runner', pronouns: 'he/him', currentBracket: 'Normal', points: 0, bestTournamentTimeMilliseconds: 9000000 },
+  { discordUsername: 'speedrunner22', displayName: 'speedrunner22', role: 'runner', pronouns: 'he/him', currentBracket: 'Normal', points: 0, bestTournamentTimeMilliseconds: 9000000 },
+  { discordUsername: 'speedrunner23', displayName: 'speedrunner23', role: 'runner', pronouns: 'he/him', currentBracket: 'Normal', points: 0, bestTournamentTimeMilliseconds: 9000000 },
+  { discordUsername: 'speedrunner24', displayName: 'speedrunner24', role: 'runner', pronouns: 'he/him', currentBracket: 'Normal', points: 0, bestTournamentTimeMilliseconds: 9000000 },
+  { discordUsername: 'speedrunner25', displayName: 'speedrunner25', role: 'runner', pronouns: 'he/him', currentBracket: 'Normal', points: 0, bestTournamentTimeMilliseconds: 9000000 },
+  { discordUsername: 'speedrunner26', displayName: 'speedrunner26', role: 'runner', pronouns: 'he/him', currentBracket: 'Normal', points: 0, bestTournamentTimeMilliseconds: 9000000 },
+  { discordUsername: 'speedrunner27', displayName: 'speedrunner27', role: 'runner', pronouns: 'he/him', currentBracket: 'Normal', points: 0, bestTournamentTimeMilliseconds: 9000000 },
+  { discordUsername: 'speedrunner28', displayName: 'speedrunner28', role: 'runner', pronouns: 'he/him', currentBracket: 'Normal', points: 0, bestTournamentTimeMilliseconds: 9000000 },
+  { discordUsername: 'speedrunner29', displayName: 'speedrunner29', role: 'runner', pronouns: 'he/him', currentBracket: 'Normal', points: 0, bestTournamentTimeMilliseconds: 9000000 },
+  { discordUsername: 'speedrunner30', displayName: 'speedrunner30', role: 'runner', pronouns: 'he/him', currentBracket: 'Normal', points: 0, bestTournamentTimeMilliseconds: 9000000 },
+  { discordUsername: 'speedrunner31', displayName: 'speedrunner31', role: 'runner', pronouns: 'he/him', currentBracket: 'Normal', points: 0, bestTournamentTimeMilliseconds: 9000000 },
+  { discordUsername: 'speedrunner32', displayName: 'speedrunner32', role: 'runner', pronouns: 'he/him', currentBracket: 'Normal', points: 0, bestTournamentTimeMilliseconds: 9000000 },
+  { discordUsername: 'speedrunner33', displayName: 'speedrunner33', role: 'runner', pronouns: 'he/him', currentBracket: 'Normal', points: 0, bestTournamentTimeMilliseconds: 9000000 },
+  { discordUsername: 'speedrunner34', displayName: 'speedrunner34', role: 'runner', pronouns: 'he/him', currentBracket: 'Normal', points: 0, bestTournamentTimeMilliseconds: 9000000 },
+  { discordUsername: 'speedrunner35', displayName: 'speedrunner35', role: 'runner', pronouns: 'he/him', currentBracket: 'Normal', points: 0, bestTournamentTimeMilliseconds: 9000000 },
+  { discordUsername: 'speedrunner36', displayName: 'speedrunner36', role: 'runner', pronouns: 'he/him', currentBracket: 'Normal', points: 0, bestTournamentTimeMilliseconds: 9000000 },
+  { discordUsername: 'speedrunner37', displayName: 'speedrunner37', role: 'runner', pronouns: 'he/him', currentBracket: 'Normal', points: 0, bestTournamentTimeMilliseconds: 9000000 },
+  { discordUsername: 'speedrunner38', displayName: 'speedrunner38', role: 'runner', pronouns: 'he/him', currentBracket: 'Normal', points: 0, bestTournamentTimeMilliseconds: 9000000 },
+  { discordUsername: 'speedrunner39', displayName: 'speedrunner39', role: 'runner', pronouns: 'he/him', currentBracket: 'Normal', points: 0, bestTournamentTimeMilliseconds: 9000000 },
+  { discordUsername: 'speedrunner40', displayName: 'speedrunner40', role: 'runner', pronouns: 'he/him', currentBracket: 'Normal', points: 0, bestTournamentTimeMilliseconds: 9000000 },
+  { discordUsername: 'speedrunner41', displayName: 'speedrunner41', role: 'runner', pronouns: 'he/him', currentBracket: 'Normal', points: 0, bestTournamentTimeMilliseconds: 9000000 },
+  { discordUsername: 'speedrunner42', displayName: 'speedrunner42', role: 'runner', pronouns: 'he/him', currentBracket: 'Normal', points: 0, bestTournamentTimeMilliseconds: 9000000 },
+  { discordUsername: 'speedrunner43', displayName: 'speedrunner43', role: 'runner', pronouns: 'he/him', currentBracket: 'Normal', points: 0, bestTournamentTimeMilliseconds: 9000000 },
+  { discordUsername: 'speedrunner44', displayName: 'speedrunner44', role: 'runner', pronouns: 'he/him', currentBracket: 'Normal', points: 0, bestTournamentTimeMilliseconds: 9000000 },
   
   // Commentators and Admins
-  { discordUsername: 'slayerlol99', displayName: 'Pokemon Announcer', role: 'runner', pronouns: 'they/them', points: 0, bestTournamentTimeMilliseconds: 0, isAdmin: true },
-  { discordUsername: 'pokemon_announcer', displayName: 'Pokemon Announcer', role: 'commentator', pronouns: 'they/them', points: 0, bestTournamentTimeMilliseconds: 0 },
-  { discordUsername: 'red_expert', displayName: 'Red Expert', role: 'commentator', pronouns: 'she/her', points: 0, bestTournamentTimeMilliseconds: 0 },
-  { discordUsername: 'speedrun_analyst', displayName: 'Speedrun Analyst', role: 'commentator', pronouns: 'he/him', points: 0, bestTournamentTimeMilliseconds: 0 },
+  { discordUsername: 'slayerlol99', displayName: 'slayerlol99', role: 'runner', pronouns: 'they/them', currentBracket: 'Normal', points: 0, bestTournamentTimeMilliseconds: 0, isAdmin: true },
 ];
 
 const mockTournament = {
@@ -97,6 +105,29 @@ async function seedDatabase() {
       dbName: process.env.NODE_ENV === 'production' ? 'tournament' : 'redtournament'
     });
     console.log('✅ Connected to MongoDB');
+
+    await Promise.all([
+      User.find({}).then(function (users) {
+        console.log("USERS");
+        console.log(users);
+      }),
+      Tournament.find({}).then(function (tourn) {
+        console.log("TOURNAMENT");
+        console.log(tourn);
+      }),
+      Race.find({}).then(function (races) {
+        console.log("RACE");
+        console.log(races);
+      }),
+      Group.find({}).then(function (group) {
+        console.log("GROUP");
+        console.log(group);
+      }),
+      Pickems.find({}).then(function (pickems) {
+        console.log("Pickems");
+        console.log(pickems);
+      }),
+    ]);
 
     // Clear existing data
     console.log('🗑️  Clearing existing data...');

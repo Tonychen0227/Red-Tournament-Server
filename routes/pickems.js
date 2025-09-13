@@ -32,7 +32,7 @@ router.post('/submit-one-off', ensureAuthenticated, async (req, res) => {
 
     const newPickems = new Pickems({
       userId,
-      top9: selectedRunners.map(runner => runner._id),
+      top27: selectedRunners.map(runner => runner._id),
       overallWinner: selectedWinner._id,
       bestTimeWho: selectedBestTimeRunner._id,
       closestTime
