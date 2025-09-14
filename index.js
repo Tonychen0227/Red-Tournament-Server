@@ -135,7 +135,7 @@ app.use(session({
     secure: process.env.NODE_ENV === 'production',
     httpOnly: false,
     sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // 'none' for cross-origin in production
-    maxAge: 24 * 60 * 60 * 1000 
+    maxAge: 24 * 60 * 60 * 1000
   }
 }));
 
@@ -147,8 +147,12 @@ app.use(passport.session());
 passport.serializeUser((user, done) => done(null, user));
 
 passport.deserializeUser(async (obj, done) => {
+  console.log("FAKER: Deserializing user");
+
   try {
+    console.log(`FAKER: Username ${obj.username}`);
     const user = await User.findOne({ discordUsername: obj.username });
+    console.log(`FAKER: Returned user: ${JSON.stringify(user)}`);
 
     if (user) {
       const fullUser = {
@@ -159,6 +163,8 @@ passport.deserializeUser(async (obj, done) => {
         displayName: user.displayName,
         pronouns: user.pronouns 
       };
+
+      console.log(`FAKER: Full user: ${JSON.stringify(fullUser)}`);
       done(null, fullUser);
     } else {
       done(null, obj);
