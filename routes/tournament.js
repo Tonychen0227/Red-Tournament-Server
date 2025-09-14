@@ -86,7 +86,6 @@ router.post('/end-round', ensureAdmin, async (req, res) => {
     }
 
     if (currentRound === 'Round 3') {
-      await processRaceResults(races, currentRound);
       const { topTwentySeven, tiedRacers } = await selectTopTwentySeven();
 
       tournament.currentRound = 'Quarterfinals';
@@ -144,36 +143,6 @@ function getMillisecondsFromFinishTime(finishTime) {
 }
 
 async function processRaceResults(races, currentRound) {
-  const round1BracketPoints = {
-    High: 10,
-    Middle: 9,
-    Low: 6,
-  };
-
-  const round2AscensionBracketPoints = {
-    High: 1000,
-    Middle: 10,
-    Low: 6,
-  };
-
-  const round2NormalBracketPoints = {
-    High: 10,
-    Middle: 6,
-    Low: 3,
-  };
-
-  const round3AscensionBracketPoints = {
-    High: 100,
-    Middle: 10,
-    Low: 6,
-  };
-
-  const round3NormalBracketPoints = {
-    High: 10,
-    Middle: 6,
-    Low: 1,
-  };
-
   const usersToUpdate = {};
 
   for (const race of races) {
@@ -217,19 +186,6 @@ async function processRaceResults(races, currentRound) {
       }
     });
 
-    for (const pair of racerResultPairs) {
-      const pairRacer = pair.racer;
-      const pairResult = pair.result;
-      
-      if (pairResult.status === "Finished") {
-        const pairResultMillis = getMillisecondsFromFinishTime(pairResult.finishTime);
-
-        if (pairResultMillis < pairRacer.bestTournamentTimeMilliseconds) {
-          pairRacer.bestTournamentTimeMilliseconds = pairResultMillis;
-        }
-      }
-    }
-
     const winnerPair = racerResultPairs[0];
     const winner = winnerPair.racer;
 
@@ -257,51 +213,14 @@ async function processRaceResults(races, currentRound) {
         middle.currentBracket = 'Playoffs'
       }
     } else if (currentBracket === 'Normal') {
-      let gain;
-      
-      if (currentRound === "Round 1") {
-        gain = round1BracketPoints;
-      } else if (currentRound === "Round 2") {
-        gain = round2NormalBracketPoints;
-      } else if (currentRound === "Round 3") {
-        gain = round3NormalBracketPoints;
-      } else {
-        throw new Error(`Something went wrong processing race, invalid round combination`);
-      }
-
-      winner.points = (winner.points || 0) + gain['High'];
       winner.currentBracket = 'Ascension';
-
-      last.points = (last.points || 0) + gain['Low'];
-
-      if (middle) {
-        middle.points = (middle.points || 0) + gain['Middle'];
-      }
-
     } else if (currentBracket === 'Ascension') {
-      let gain;
-      
-      if (currentRound === "Round 2") {
-        gain = round2AscensionBracketPoints;
-      } else if (currentRound === "Round 3") {
-        gain = round3AscensionBracketPoints;
-      } else {
-        throw new Error(`Something went wrong processing race, invalid round combination`);
-      }
-
-      winner.points = (winner.points || 0) + gain['High'];
       winner.currentBracket = currentRound === "Round 2" ? 'Exhibition' : 'Playoffs';
-
-      last.points = (last.points || 0) + gain['Low'];
       last.currentBracket = 'Normal';
-
-      if (middle) {
-        middle.points = (middle.points || 0) + gain['Middle'];
-      }
     }
 
     usersToUpdate[winner._id.toString()] = winner;
-    usersToUpdate[loser._id.toString()] = loser;
+    usersToUpdate[last._id.toString()] = last;
 
     if (middle) {
       usersToUpdate[middle._id.toString()] = middle;

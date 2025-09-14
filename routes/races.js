@@ -12,6 +12,41 @@ const ensureAdmin = require('../middleware/ensureAdmin');
 const ensureAuthenticated = require('../middleware/ensureAuthenticated');
 
 const POINTS_PER_CORRECT_PICK = 5;
+const TOURNAMENT_NAME = 'red2025';
+
+// Bracket points configuration for different rounds
+const BRACKET_POINTS = {
+    round1: {
+        High: 10,
+        Middle: 9,
+        Low: 6,
+    },
+    round2Ascension: {
+        High: 1000,
+        Middle: 10,
+        Low: 6,
+    },
+    round2Normal: {
+        High: 10,
+        Middle: 6,
+        Low: 3,
+    },
+    round3Ascension: {
+        High: 100,
+        Middle: 10,
+        Low: 6,
+    },
+    round3Normal: {
+        High: 10,
+        Middle: 6,
+        Low: 1,
+    },
+};
+
+// Helper function to convert finish time to milliseconds
+function getMillisecondsFromFinishTime(finishTime) {
+    return (finishTime.hours || 0) * 3600000 + (finishTime.minutes || 0) * 60000 + (finishTime.seconds || 0) * 1000 + (finishTime.milliseconds || 0);
+}
 
 router.get('/', async (req, res) => {
     try {
@@ -105,7 +140,7 @@ router.post('/submit', ensureRunner, async (req, res) => {
         };
 
         // Fetch the tournament
-        const tournament = await Tournament.findOne({ name: 'red2025' });
+        const tournament = await Tournament.findOne({ name: TOURNAMENT_NAME });
 
         if (!tournament) {
         return res.status(404).json({ error: 'Tournament not found' });
@@ -189,7 +224,7 @@ router.post('/:id/complete', ensureAdmin, async (req, res) => {
             race.winner = null;
         }
 
-        const tournament = await Tournament.findOne({ name: 'red2025' });
+        const tournament = await Tournament.findOne({ name: TOURNAMENT_NAME });
 
         if (!tournament) {
             return res.status(404).json({ error: 'Tournament not found' });
@@ -197,14 +232,121 @@ router.post('/:id/complete', ensureAdmin, async (req, res) => {
 
         race.round = tournament.currentRound;
 
-        if (race.round !== 'Semifinals' && race.round !== 'Final') {
-            const winner = await User.findById(race.winner);
-            
-            if (winner) {
-                winner.points = (winner.points || 0) + 4;
-                await winner.save();
-            } else {
-                return res.status(404).json({ error: 'Winner not found' });
+        if (race.round !== 'Quarterfinals' && race.round !== 'Semifinals' && race.round !== 'Final') {
+            const racers = [race.racer1, race.racer2, race.racer3].filter(racer => racer);
+
+            const racerResultsMap = {};
+            for (const result of race.results) {
+                racerResultsMap[result.racer.toString()] = result;
+            }
+
+            const racerResultPairs = racers.map(racer => ({
+                racer,
+                result: racerResultsMap[racer._id.toString()],
+            }));
+
+            const statusOrder = { 'Finished': 0, 'DNF': 1, 'DNS': 2, 'DQ': 3 };
+
+            racerResultPairs.sort((a, b) => {
+                const aStatusOrder = statusOrder[a.result.status] ?? 4; // Default to 4 if status not recognized
+                const bStatusOrder = statusOrder[b.result.status] ?? 4;
+
+                if (aStatusOrder !== bStatusOrder) {
+                    return aStatusOrder - bStatusOrder;
+                } else {
+                    if (a.result.status === 'Finished') {
+                        const aTime = getMillisecondsFromFinishTime(a.result.finishTime);
+                        const bTime = getMillisecondsFromFinishTime(b.result.finishTime);
+
+                        return aTime - bTime;
+                    } else if (a.result.status === 'DNF' && b.result.status === 'DNF') {
+
+                        // Compare dnfOrder (lower dnfOrder means earlier DNF, thus worse placement)
+                        const aDnfOrder = a.result.dnfOrder || Number.MAX_SAFE_INTEGER;
+                        const bDnfOrder = b.result.dnfOrder || Number.MAX_SAFE_INTEGER;
+
+                        return aDnfOrder - bDnfOrder; // Higher dnfOrder ranks higher
+                    } else {
+                        // For other statuses or equal statuses without specific ordering
+                        return 0;
+                    }
+                }
+            });
+
+            for (const pair of racerResultPairs) {
+                const pairRacer = pair.racer;
+                const pairResult = pair.result;
+                
+                if (pairResult.status === "Finished") {
+                    const pairActualRacer = await User.findById(pairRacer);
+                    const pairResultMillis = getMillisecondsFromFinishTime(pairResult.finishTime);
+                    if (pairResultMillis < pairActualRacer.bestTournamentTimeMilliseconds || pairActualRacer.bestTournamentTimeMilliseconds === 0) {
+                        pairActualRacer.bestTournamentTimeMilliseconds = pairResultMillis;
+                        await pairActualRacer.save();
+                    }
+                }
+            }
+
+            const winnerPair = racerResultPairs[0];
+            const winner = await User.findById(winnerPair.racer);
+
+            const lastPair = racerResultPairs[racerResultPairs.length - 1];
+            const last = await User.findById(lastPair.racer);
+
+            let middlePair = undefined;
+            let middle = undefined;
+
+            if (racerResultPairs.length > 2) {
+                middlePair = racerResultPairs[1];
+                middle = await User.findById(middlePair.racer);
+            }
+
+            const currentBracket = winner.currentBracket;
+
+            console.log(`Processing race with ${racers.length} racers for round: ${race.round} and bracket: ${currentBracket}`);
+
+            if (currentBracket === 'Normal') {
+                let gain;
+                
+                if (race.round === "Round 1") {
+                    gain = BRACKET_POINTS.round1;
+                } else if (race.round === "Round 2") {
+                    gain = BRACKET_POINTS.round2Normal;
+                } else if (race.round === "Round 3") {
+                    gain = BRACKET_POINTS.round3Normal;
+                } else {
+                    throw new Error(`Something went wrong processing race, invalid round combination`);
+                }
+
+                winner.points = (winner.points || 0) + gain['High'];
+
+                last.points = (last.points || 0) + gain['Low'];
+
+                if (middle) {
+                    middle.points = (middle.points || 0) + gain['Middle'];
+                }
+            } else if (currentBracket === 'Ascension') {
+                let gain;
+                
+                if (race.round === "Round 2") {
+                    gain = BRACKET_POINTS.round2Ascension;
+                } else if (race.round === "Round 3") {
+                    gain = BRACKET_POINTS.round3Ascension;
+                } else {
+                    throw new Error(`Something went wrong processing race, invalid round combination`);
+                }
+                winner.points = (winner.points || 0) + gain['High'];
+                last.points = (last.points || 0) + gain['Low'];
+                if (middle) {
+                    middle.points = (middle.points || 0) + gain['Middle'];
+                }
+            }
+
+            await winner.save();
+            await last.save();
+
+            if (middle) {
+                await middle.save();
             }
         }
 
