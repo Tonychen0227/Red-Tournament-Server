@@ -72,7 +72,7 @@ router.get('/', async (req, res) => {
 
     // Fetch all groups, regardless of the round
     const groups = await Group.find({})
-      .populate('members')
+      .populate('members round')
       .exec();
 
     // Send both the current round and all groups

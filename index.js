@@ -133,7 +133,7 @@ app.use(session({
   }),
   cookie: {
     secure: process.env.NODE_ENV === 'production',
-    httpOnly: true,
+    httpOnly: false,
     sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // 'none' for cross-origin in production
     maxAge: 24 * 60 * 60 * 1000 
   }

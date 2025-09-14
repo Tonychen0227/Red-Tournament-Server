@@ -19,9 +19,12 @@ passport.use(new Strategy({
 async (accessToken, refreshToken, profile, done) => {
   try {
       // Find user by Discord username
+      console.log(`FAKER: Attempting to lookup user by ${profile.username}`)
       let user = await User.findOne({ discordUsername: profile.username });
 
       if (!user) {
+            console.log("FAKER: User doesn't exist");
+
           // If the user doesn't exist, create a new one with a default role and isAdmin set to false
           user = await User.create({
               discordUsername: profile.username,
@@ -31,6 +34,7 @@ async (accessToken, refreshToken, profile, done) => {
               pronouns: null
           });
       } else {
+          console.log(`FAKER: Saving new user displayname to  ${profile._json.global_name || profile.username}`)
           user.displayName = profile._json.global_name || profile.username;
           await user.save();
       }
@@ -39,6 +43,8 @@ async (accessToken, refreshToken, profile, done) => {
       profile.isAdmin = user.isAdmin;
       profile.displayName = user.displayName;
       profile.pronouns = user.pronouns;
+
+      console.log(`FAKER: Done, ${JSON.stringify(profile)}`)
 
       return done(null, profile);
   } catch (err) {

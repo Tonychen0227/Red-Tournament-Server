@@ -370,127 +370,109 @@ const getTopPicksByRound = async (roundField, limit = 5) => {
   return topPicks;
 };
 
+function consolidateMap(dictionary, element) {
+  if (dictionary[element]) {
+    dictionary[element] += 1;
+  } else {
+    dictionary[element] = 1;
+  }
+}
+
 const getFavoritePerGroup = async () => {
   try {
+    const allGroups = await Group.find({});
+    let retObjects = [];
 
-    const favoritePerGroup = await Group.aggregate([
-      {
-        $lookup: {
-          from: "pickems",
-          let: { groupMembers: "$members", currentRound: "$round" },
-          pipeline: [
-            {
-              $project: {
-                userId: 1,
-                picks: {
-                  $switch: {
-                    branches: [
-                      { case: { $eq: ["$$currentRound", "Round 1"] }, then: "$round1Picks" },
-                      { case: { $eq: ["$$currentRound", "Round 2"] }, then: "$round2Picks" },
-                      { case: { $eq: ["$$currentRound", "Round 3"] }, then: "$round3Picks" },
-                      { case: { $eq: ["$$currentRound", "Quarterfinals"] }, then: "$quarterFinalsPicks" },
-                      { case: { $eq: ["$$currentRound", "Semifinals"] }, then: "$semiFinalsPicks" },
-                      { case: { $eq: ["$$currentRound", "Final"] }, then: "$finalPick" }
-                    ],
-                    default: []
-                  }
-                }
-              }
-            },
-            { $unwind: "$picks" },
-            { $match: { $expr: { $in: ["$picks", "$$groupMembers"] } } },
-            {
-              $group: {
-                _id: "$picks",
-                pickCount: { $sum: 1 }
-              }
-            },
-            // Determine the maximum pickCount
-            {
-              $group: {
-                _id: null,
-                maxPickCount: { $max: "$pickCount" },
-                picks: { $push: { userId: "$_id", pickCount: "$pickCount" } }
-              }
-            },
-            // Filter users with pickCount equal to maxPickCount
-            {
-              $project: {
-                picks: {
-                  $filter: {
-                    input: "$picks",
-                    as: "pick",
-                    cond: { $eq: ["$$pick.pickCount", "$maxPickCount"] }
-                  }
-                }
-              }
-            },
-            { $unwind: "$picks" },
-            {
-              $lookup: {
-                from: "users",
-                localField: "picks.userId",
-                foreignField: "_id",
-                as: "user"
-              }
-            },
-            { $unwind: "$user" },
-            {
-              $project: {
-                _id: 0,
-                userId: "$picks.userId",
-                displayName: "$user.displayName",
-                discordUsername: '$user.discordUsername',
-                currentBracket: '$user.currentBracket',
-                pickCount: "$picks.pickCount"
-              }
-            }
-          ],
-          as: "favorite"
+    for (const retGroup of allGroups) {
+
+      retObjects.push({
+        favorite: [],
+        groupNumber: retGroup.groupNumber,
+        members: retGroup.members,
+        round: retGroup.round,
+        bracket: retGroup.bracket,
+        raceStartTime: retGroup.raceStartTime
+      });
+    }
+
+    const pickems = await Pickems.find({});
+
+    const round1PicksMap = {};
+    const round2PicksMap = {};
+    const round3PicksMap = {};
+    const quarterFinalsPicksMap = {};
+    const semiFinalsPicksMap = {};
+    const finalPicksMap = {};
+
+    for (const pickem of pickems) {
+      if (pickem.round1Picks) {
+        for (const round1Pick of pickem.round1Picks) {
+          consolidateMap(round1PicksMap, round1Pick);
         }
-      },
-      // Exclude groups with no favorite
-      {
-        $match: {
-          favorite: { $ne: [] } // Ensure favorite exists
+      }
+
+      if (pickem.round2Picks) {
+        for (const round2Pick of pickem.round2Picks) {
+          consolidateMap(round2PicksMap, round2Pick);
         }
-      },
-      {
-        $project: {
-          groupNumber: 1,
-          round: 1,
-          raceStartTime: 1,
-          favorite: 1
+      }
+
+      if (pickem.round3Picks) {
+        for (const round3Pick of pickem.round3Picks) {
+          consolidateMap(round3PicksMap, round3Pick);
         }
-      },
-      // Group by round and accumulate groups
-      {
-        $group: {
-          _id: "$round",
-          groups: {
-            $push: {
-              groupNumber: "$groupNumber",
-              raceStartTime: "$raceStartTime",
-              favorite: "$favorite"
-            }
+      }
+
+      if (pickem.quarterFinalsPicks) {
+        for (const quarterFinalsPick of pickem.quarterFinalsPicks) {
+          consolidateMap(quarterFinalsPicksMap, quarterFinalsPick);
+        }
+      }
+
+      if (pickem.semiFinalsPicks) {
+        for (const semiFinalsPick of pickem.semiFinalsPicks) {
+          consolidateMap(semiFinalsPicksMap, semiFinalsPick);
+        }
+      }
+
+      if (pickem.overallWinner) {
+        consolidateMap(finalPicksMap, pickem.overallWinner);
+      }
+    }
+
+    const mapsMapping = {
+      'Round 1': round1PicksMap,
+      'Round 2': round2PicksMap,
+      'Round 3': round3PicksMap,
+      'Quarterfinals': quarterFinalsPicksMap,
+      'Semifinals': semiFinalsPicksMap,
+      'Final': finalPicksMap,
+    };
+
+    for (const retGroup of retObjects) {
+      const retGroupRound = retGroup.round;
+      const correspondingMap = mapsMapping[retGroupRound];
+
+      let favorites = []
+
+      for (const member of retGroup.members) {
+        const memberFavorite = {
+          "userId": member
+        }
+
+        if (correspondingMap[member]) {
+          if (favorites.length === 0 || correspondingMap[favorites[0]] < correspondingMap[member]) {
+            favorites = [memberFavorite]
+          } else {
+            favorites.push(memberFavorite);
           }
         }
-      },
-      // Rename _id to round for clarity
-      {
-        $project: {
-          _id: 0,
-          round: "$_id",
-          groups: 1
-        }
-      },
-      {
-        $sort: { round: 1 }
       }
-    ]);
 
-    return favoritePerGroup;
+      retGroup.favorite = favorites;
+    }
 
+    return retObjects;
   } catch (error) {
     console.error("Error in getFavoritePerGroup:", error);
     throw error;
