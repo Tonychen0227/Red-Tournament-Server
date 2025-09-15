@@ -168,6 +168,33 @@ async function getMostActiveCommentators() {
     return commentators;
 }
 
+async function getCountryStats() {
+    try {
+        // Get all runners with their countries
+        const runners = await User.find({ 
+            role: 'runner', 
+            country: { $ne: null, $exists: true, $ne: '' } 
+        }).select('country').exec();
+
+        // Count runners by country
+        const countryCount = {};
+        runners.forEach(runner => {
+            const country = runner.country.toUpperCase();
+            countryCount[country] = (countryCount[country] || 0) + 1;
+        });
+
+        // Convert to array and sort by count
+        const countrySortedArray = Object.entries(countryCount)
+            .map(([country, count]) => ({ country, count }))
+            .sort((a, b) => b.count - a.count);
+
+        return countrySortedArray;
+    } catch (error) {
+        console.error('Error in getCountryStats:', error);
+        throw error;
+    }
+}
+
 router.get('/', async (req, res) => {
     try {
         const stats = {};
@@ -176,6 +203,7 @@ router.get('/', async (req, res) => {
         stats.averageTimePerRound = await getAverageTimePerRound();
         stats.averageTimePerBracket = await getAverageTimePerBracket();
         stats.mostActiveCommentators = await getMostActiveCommentators();
+        stats.countryStats = await getCountryStats();
 
         res.json(stats);
     } catch (err) {
