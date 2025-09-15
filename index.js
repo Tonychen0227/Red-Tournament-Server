@@ -200,12 +200,13 @@ app.get('/api/runners', async (req, res) => {
           displayName: 1,
           discordUsername: 1,
           currentBracket: 1,
+          country: 1,
           displayNameLower: { $toLower: "$displayName" } // Create a field for case-insensitive sort
         }
       },
       { $sort: { displayNameLower: 1 } }, // Sort by the lowercase display name
       { 
-        $project: { 
+        $project: {
           displayNameLower: 0 // Remove the temporary field after sorting
         }
       }

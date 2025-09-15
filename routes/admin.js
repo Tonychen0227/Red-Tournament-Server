@@ -7,15 +7,24 @@ const Race = require('../models/Race');
 const User = require('../models/User');
 
 router.post('/add-user', ensureAdmin, async (req, res) => {
-  const { discordUsername, displayName, role, isAdmin } = req.body;
+  const { discordUsername, displayName, role, isAdmin, country } = req.body;
 
   try {
+    // Validate country code if provided
+    if (country && country !== '' && (typeof country !== 'string' || !/^[A-Z]{2}$/.test(country))) {
+      return res.status(400).json({
+        message: 'Country must be a valid ISO 3166-1 alpha-2 country code (e.g., US, CA, GB) or empty',
+        error: 'Invalid country code format'
+      });
+    }
+
     const user = await User.findOneAndUpdate(
       { discordUsername }, // Find user by Discord username
       { 
         displayName,
         role, 
-        isAdmin: isAdmin === 'on'
+        isAdmin: isAdmin === 'on',
+        country: country === '' ? null : country
       },
       { new: true, upsert: true }
     );

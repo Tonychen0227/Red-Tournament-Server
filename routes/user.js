@@ -46,6 +46,27 @@ router.post('/pronouns', ensureAuthenticated, async (req, res) => {
   }
 });
 
+router.post('/country', ensureAuthenticated, async (req, res) => {
+  const { country } = req.body;
+
+  // Validate country code format (ISO 3166-1 alpha-2)
+  if (country !== null && country !== '' && (typeof country !== 'string' || !/^[A-Z]{2}$/.test(country))) {
+    return res.status(400).json({ error: 'Country must be a valid ISO 3166-1 alpha-2 country code (e.g., US, CA, GB) or null' });
+  }
+
+  try {
+    const user = await User.findByIdAndUpdate(
+      req.user._id,
+      { country: country === '' ? null : country },
+      { new: true }
+    );
+    res.json(user);
+  } catch (err) {
+    console.error('Error updating country:', err);
+    res.status(500).json({ error: 'Error updating country' });
+  }
+});
+
 // Get user details by discordUsername
 router.get('/:discordUsername', async (req, res) => {
   const { discordUsername } = req.params;

@@ -28,10 +28,11 @@ async (accessToken, refreshToken, profile, done) => {
               displayName: profile._json.global_name || profile.username,
               role: 'commentator',
               isAdmin: false,
-              pronouns: null
+              pronouns: null,
+              country: null
           });
       } else {
-          user.displayName = profile._json.global_name || profile.username;
+          user.displayName = user.displayName || profile._json.global_name || profile.username;
           await user.save();
       }
 
@@ -39,6 +40,7 @@ async (accessToken, refreshToken, profile, done) => {
       profile.isAdmin = user.isAdmin;
       profile.displayName = user.displayName;
       profile.pronouns = user.pronouns;
+      profile.country = user.country;
 
       return done(null, profile);
   } catch (err) {

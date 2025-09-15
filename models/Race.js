@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 
 const raceSchema = new mongoose.Schema({
 
-  raceTimeId: { type: String, unique: true, sparse: true },
+  raceTimeId: { type: String, sparse: true },
 
   racer1: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   racer2: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
@@ -43,6 +43,6 @@ const raceSchema = new mongoose.Schema({
 });
 
 
-const Race = mongoose.model('Race', raceSchema);
+const Race = mongoose.model('Race', raceSchema, 'newraces');
 
 module.exports = Race;

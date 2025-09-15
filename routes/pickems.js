@@ -463,7 +463,7 @@ const getFavoritePerGroup = async () => {
         if (correspondingMap[member]) {
           if (favorites.length === 0 || correspondingMap[favorites[0]] < correspondingMap[member]) {
             favorites = [memberFavorite]
-          } else {
+          } else if (correspondingMap[favorites[0]] === correspondingMap[member]) {
             favorites.push(memberFavorite);
           }
         }

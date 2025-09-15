@@ -10,12 +10,13 @@ const ensureAdmin = require('../middleware/ensureAdmin');
 router.get('/standings', async (req, res) => {
   try {
     const runners = await User.find({ role: 'runner' })
-      .select('discordUsername displayName points bestTournamentTimeMilliseconds currentBracket')
+      .select('discordUsername displayName points bestTournamentTimeMilliseconds currentBracket country')
       .lean();
 
     const sortedRunners = runners
       .map(runner => ({
         discordUsername: runner.discordUsername,
+        country: runner.country,
         displayName: runner.displayName || runner.discordUsername,
         points: runner.points || 0,
         bestTournamentTimeMilliseconds: runner.bestTournamentTimeMilliseconds || 9000000,
