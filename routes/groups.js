@@ -116,7 +116,7 @@ router.get('/user/current', ensureRunner, async (req, res) => {
         path: 'currentGroup',
         populate: {
           path: 'members',
-          select: 'discordUsername displayName role pronouns'
+          select: 'discordUsername displayName role pronouns country'
         }
       })
       .exec();
