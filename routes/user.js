@@ -50,7 +50,7 @@ router.post('/country', ensureAuthenticated, async (req, res) => {
   const { country } = req.body;
 
   // Validate country code format (ISO 3166-1 alpha-2)
-  if (country !== null && country !== '' && (typeof country !== 'string' || !/^[A-Z]{2}$/.test(country))) {
+  if (country !== null && country !== '' && (!/^[A-Z]{2}$/.test(country) && ['ENG', 'SCO', 'WAL', 'NIR'].indexOf(country) === -1)) {
     return res.status(400).json({ error: 'Country must be a valid ISO 3166-1 alpha-2 country code (e.g., US, CA, GB) or null' });
   }
 

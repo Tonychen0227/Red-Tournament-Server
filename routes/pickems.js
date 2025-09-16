@@ -457,13 +457,17 @@ const getFavoritePerGroup = async () => {
 
       for (const member of retGroup.members) {
         const memberFavorite = {
-          "userId": member
+          "userId": member,
+          "totalCount": 0
         }
 
         if (correspondingMap[member]) {
-          if (favorites.length === 0 || correspondingMap[favorites[0]] < correspondingMap[member]) {
+          memberFavorite.totalCount = correspondingMap[member];
+
+          console.log(`Group ${retGroup.groupNumber}: Member ${member} has count ${correspondingMap[member]} in round ${retGroupRound}`);
+          if (favorites.length === 0 || correspondingMap[favorites[0].userId] < correspondingMap[member]) {
             favorites = [memberFavorite]
-          } else if (correspondingMap[favorites[0]] === correspondingMap[member]) {
+          } else if (correspondingMap[favorites[0].userId] === correspondingMap[member]) {
             favorites.push(memberFavorite);
           }
         }

@@ -179,8 +179,10 @@ async function getCountryStats() {
         // Count runners by country
         const countryCount = {};
         runners.forEach(runner => {
-            const country = runner.country.toUpperCase();
-            countryCount[country] = (countryCount[country] || 0) + 1;
+            if (runner.country) {
+                const country = runner.country.toUpperCase();
+                countryCount[country] = (countryCount[country] || 0) + 1;
+            }
         });
 
         // Convert to array and sort by count

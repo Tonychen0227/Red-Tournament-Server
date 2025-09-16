@@ -11,7 +11,7 @@ router.post('/add-user', ensureAdmin, async (req, res) => {
 
   try {
     // Validate country code if provided
-    if (country && country !== '' && (typeof country !== 'string' || !/^[A-Z]{2}$/.test(country))) {
+    if (country && country !== '' && (typeof country !== 'string' || (!/^[A-Z]{2}$/.test(country) && ['ENG', 'SCO', 'WAL', 'NIR'].indexOf(country) === -1))) {
       return res.status(400).json({
         message: 'Country must be a valid ISO 3166-1 alpha-2 country code (e.g., US, CA, GB) or empty',
         error: 'Invalid country code format'
