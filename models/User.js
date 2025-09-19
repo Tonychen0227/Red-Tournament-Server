@@ -11,6 +11,10 @@ const userSchema = new mongoose.Schema({
     points: { type: Number, default: 0 },
     bestTournamentTimeMilliseconds: { type: Number, default: 9000000 },
     currentGroup: { type: mongoose.Schema.Types.ObjectId, ref: 'Group' },
+    photos: [{ 
+        value: { type: String }, // Discord avatar URL
+        type: { type: String, default: 'image' }
+    }],
 });
 
 const User = mongoose.model('User', userSchema);

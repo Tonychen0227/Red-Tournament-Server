@@ -16,6 +16,7 @@ const Tournament = require('./models/Tournament');
 const Race = require('./models/Race');
 const Group = require('./models/Group');
 const Pickems = require('./models/Pickems');
+const PastResults = require('./models/PastResults');
 
 // Connect to MongoDB
 const mongoUrl = process.env.NODE_ENV === 'production' 
@@ -71,6 +72,61 @@ const mockTournament = {
   currentRound: 'Round 2'
 };
 
+// Mock past results data
+const mockPastResults = [
+  {
+    tournamentYear: 2024,
+    gold: { name: 'Lightning Fast', userId: null },
+    silver: { name: 'Pokemon Master', userId: null },
+    bronze: { name: 'Red Version Pro', userId: null },
+    spotlightVideos: [
+      'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+      'https://www.youtube.com/watch?v=jNQXAC9IVRw'
+    ]
+  },
+  {
+    tournamentYear: 2023,
+    gold: { name: 'Elite4 Champion', userId: null },
+    silver: { name: 'Pikachu Power', userId: null },
+    bronze: { name: 'Gym Leader Brock', userId: null },
+    spotlightVideos: [
+      'https://www.youtube.com/watch?v=9bZkp7q19f0',
+      'https://www.youtube.com/watch?v=1w7OgIMMRc4',
+      'https://www.youtube.com/watch?v=GtUVQei3nX4'
+    ]
+  },
+  {
+    tournamentYear: 2022,
+    gold: { name: 'Misty Water', userId: null },
+    silver: { name: 'Lt. Surge Electric', userId: null },
+    bronze: { name: 'Erika Grass', userId: null },
+    spotlightVideos: [
+      'https://www.youtube.com/watch?v=fJ9rUzIMcZQ'
+    ]
+  },
+  {
+    tournamentYear: 2021,
+    gold: { name: 'Koga Poison', userId: null },
+    silver: { name: 'Sabrina Psychic', userId: null },
+    bronze: { name: 'Blaine Fire', userId: null },
+    spotlightVideos: [
+      'https://www.youtube.com/watch?v=ZZ5LpwO-An4',
+      'https://www.youtube.com/watch?v=hFZFjoX2cGg'
+    ]
+  },
+  {
+    tournamentYear: 2020,
+    gold: { name: 'Giovanni Ground', userId: null },
+    silver: { name: 'Team Rocket Member', userId: null },
+    bronze: { name: 'Youngster Joey', userId: null },
+    spotlightVideos: [
+      'https://www.youtube.com/watch?v=y6120QOlsfU',
+      'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+      'https://www.youtube.com/watch?v=oHg5SJYRHA0'
+    ]
+  }
+];
+
 // Helper function to generate random timestamps
 function getRandomTimestamp(daysFromNow = 0, hoursRange = 24) {
   const now = Date.now();
@@ -105,7 +161,8 @@ async function seedDatabase() {
       Tournament.deleteMany({}),
       Race.deleteMany({}),
       Group.deleteMany({}),
-      Pickems.deleteMany({})
+      Pickems.deleteMany({}),
+      PastResults.deleteMany({})
     ]);
     console.log('✅ Existing data cleared');
 
@@ -263,6 +320,35 @@ async function seedDatabase() {
     const createdPickems = await Pickems.insertMany(pickemsData);
     console.log(`✅ Created ${createdPickems.length} pickems entries`);
 
+    // Create past results
+    console.log('🏆 Creating past results...');
+    
+    // First, try to match some existing users to past winners
+    const pastResultsWithUserIds = mockPastResults.map(result => {
+      const goldUser = createdUsers.find(user => user.displayName === result.gold.name);
+      const silverUser = createdUsers.find(user => user.displayName === result.silver.name);
+      const bronzeUser = createdUsers.find(user => user.displayName === result.bronze.name);
+      
+      return {
+        ...result,
+        gold: { 
+          name: result.gold.name, 
+          userId: goldUser ? goldUser._id : undefined 
+        },
+        silver: { 
+          name: result.silver.name, 
+          userId: silverUser ? silverUser._id : undefined 
+        },
+        bronze: { 
+          name: result.bronze.name, 
+          userId: bronzeUser ? bronzeUser._id : undefined 
+        }
+      };
+    });
+
+    const createdPastResults = await PastResults.insertMany(pastResultsWithUserIds);
+    console.log(`✅ Created ${createdPastResults.length} past results entries`);
+
     console.log('\n🎉 Mock data seeding completed successfully!');
     console.log('\n📊 Summary:');
     console.log(`   • ${createdUsers.length} users (${runners.length} runners, ${commentators.length} commentators)`);
@@ -270,6 +356,7 @@ async function seedDatabase() {
     console.log(`   • ${createdGroups.length} groups`);
     console.log(`   • ${createdRaces.length} races`);
     console.log(`   • ${createdPickems.length} pickems entries`);
+    console.log(`   • ${createdPastResults.length} past results entries`);
     console.log('\n✨ Your application now has realistic sample data!');
 
   } catch (error) {

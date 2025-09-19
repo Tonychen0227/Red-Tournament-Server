@@ -4,8 +4,41 @@ const router = express.Router();
 const mongoose = require('mongoose');
 
 const User = require('../models/User');
+const PastResults = require('../models/PastResults');
 
 const ensureAuthenticated = require('../middleware/ensureAuthenticated');
+
+// Helper function to get user's tournament trophies
+async function getUserTrophies(userId) {
+  try {
+    const pastResults = await PastResults.find({
+      $or: [
+        { 'gold.userId': userId },
+        { 'silver.userId': userId },
+        { 'bronze.userId': userId }
+      ]
+    }).sort({ tournamentYear: -1 });
+
+    const trophies = [];
+    
+    pastResults.forEach(result => {
+      if (result.gold.userId && result.gold.userId.toString() === userId.toString()) {
+        trophies.push({ year: result.tournamentYear, position: '1st', emoji: '🥇' });
+      }
+      if (result.silver.userId && result.silver.userId.toString() === userId.toString()) {
+        trophies.push({ year: result.tournamentYear, position: '2nd', emoji: '🥈' });
+      }
+      if (result.bronze.userId && result.bronze.userId.toString() === userId.toString()) {
+        trophies.push({ year: result.tournamentYear, position: '3rd', emoji: '🥉' });
+      }
+    });
+
+    return trophies;
+  } catch (error) {
+    console.error('Error fetching user trophies:', error);
+    return [];
+  }
+}
 
 router.post('/displayName', ensureAuthenticated, async (req, res) => {
   const { displayName } = req.body;
@@ -84,10 +117,44 @@ router.get('/:discordUsername', async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    res.status(200).json(user);
+    // Get user's tournament trophies
+    const trophies = await getUserTrophies(user._id);
+
+    // Add trophies to user object
+    const userWithTrophies = {
+      ...user.toObject(),
+      trophies: trophies
+    };
+
+    res.status(200).json(userWithTrophies);
   } catch (error) {
     console.error('Error fetching user details:', error);
     res.status(500).json({ message: 'Error fetching user details', error });
+  }
+});
+
+// Get current user's profile with trophy information
+router.get('/profile/me', ensureAuthenticated, async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id);
+    
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Get user's tournament trophies
+    const trophies = await getUserTrophies(user._id);
+
+    // Add trophies to user object
+    const userWithTrophies = {
+      ...user.toObject(),
+      trophies: trophies
+    };
+
+    res.status(200).json(userWithTrophies);
+  } catch (error) {
+    console.error('Error fetching user profile:', error);
+    res.status(500).json({ message: 'Error fetching user profile', error });
   }
 });
 

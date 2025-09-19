@@ -24,6 +24,7 @@ const pickemsRoutes = require('./routes/pickems');
 const statsRoutes = require('./routes/stats');
 const tournamentRoutes = require('./routes/tournament');
 const groupRoutes = require('./routes/groups');
+const pastResultsRoutes = require('./routes/pastResults');
 
 const ensureApiKey = require('./middleware/ensureApiKey');
 
@@ -176,6 +177,7 @@ app.use('/api/runners', ensureApiKey);
 app.use('/api/users', ensureApiKey);
 app.use('/api/stats', ensureApiKey);
 app.use('/api/pickems', ensureApiKey);
+app.use('/api/past-results', ensureApiKey);
 // app.use('/api/groups', ensureApiKey);
 // app.use('/api/races', ensureApiKey);
 
@@ -187,6 +189,7 @@ app.use('/api/groups', groupRoutes);
 app.use('/api/user', userRoutes);
 app.use('/api/stats', statsRoutes);
 app.use('/api/pickems', pickemsRoutes);
+app.use('/api/past-results', pastResultsRoutes);
 app.use('/', authRoutes);  // OAuth routes at root level
 app.use('/api', authRoutes);  // API routes under /api
 

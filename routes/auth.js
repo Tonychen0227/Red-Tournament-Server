@@ -21,6 +21,12 @@ async (accessToken, refreshToken, profile, done) => {
       // Find user by Discord username
       let user = await User.findOne({ discordUsername: profile.username });
 
+      // Prepare photos array from Discord profile
+      const photos = profile.photos ? profile.photos.map(photo => ({
+          value: photo.value,
+          type: 'image'
+      })) : [];
+
       if (!user) {
           // If the user doesn't exist, create a new one with a default role and isAdmin set to false
           user = await User.create({
@@ -29,10 +35,13 @@ async (accessToken, refreshToken, profile, done) => {
               role: 'commentator',
               isAdmin: false,
               pronouns: null,
-              country: null
+              country: null,
+              photos: photos
           });
       } else {
+          // Update existing user with latest display name and photos
           user.displayName = user.displayName || profile._json.global_name || profile.username;
+          user.photos = photos; // Update photos on each login to keep them current
           await user.save();
       }
 
